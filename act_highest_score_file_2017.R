@@ -54,7 +54,7 @@ student_level = grad %>%
            n_cr_math = as.numeric(math >= 22), 
            n_cr_reading = as.numeric(reading >= 22),
            n_cr_science = as.numeric(science >= 23),
-           n_cr_all = as.numeric(n_cr_english == 1 & n_cr_math == 1 & n_cr_reading == 1 & n_cr_science == 1)) %>% 
+           n_cr_all = as.numeric(n_cr_english == 1 & n_cr_math == 1 & n_cr_reading == 1 & n_cr_science == 1)) 
 
 student_level = replace(student_level, is.na(student_level), NA)
 
