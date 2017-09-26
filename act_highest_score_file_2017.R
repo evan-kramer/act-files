@@ -7,10 +7,10 @@ library(lubridate)
 library(haven)
 library(stringr)
 
-# Markers
+# Macros
 date = str_c(day(today()), month(today(), label = T), year(today()))
-sys = F
-sch = F 
+sys = T
+sch = T 
 
 # Read in data
 grad = read_csv("K:/ORP_accountability/data/2017_graduation_rate/student_level_20170830.csv")
@@ -44,7 +44,7 @@ act = transmute(act_highest, unique_student_id, test_date = act_testdate, englis
     arrange(unique_student_id, desc(composite), desc(math), desc(reading), 
             desc(english), desc(science), desc(test_date), file) %>% 
     group_by(unique_student_id) %>% 
-    summarize_all(funs(first(.)))
+    summarize_all(funs(first(.))) 
 
 # Include only graduates
 student_level = grad %>% 
@@ -54,8 +54,8 @@ student_level = grad %>%
            n_cr_math = as.numeric(math >= 22), 
            n_cr_reading = as.numeric(reading >= 22),
            n_cr_science = as.numeric(science >= 23),
-           n_cr_all = as.numeric(n_cr_english == 1 & n_cr_math == 1 & n_cr_reading == 1 & n_cr_science == 1))
-    
+           n_cr_all = as.numeric(n_cr_english == 1 & n_cr_math == 1 & n_cr_reading == 1 & n_cr_science == 1)) %>% 
+
 student_level = replace(student_level, is.na(student_level), NA)
 
 # Output student level file
@@ -63,7 +63,7 @@ output = student_level %>%
     select(system, school, state_stud_id = student_key, last_name, first_name, 
               english, math, reading, science, composite, gender, n_cr_english,
               n_cr_math, n_cr_reading, n_cr_science, n_cr_all)
-#write_csv(output, "K:/ORP_accountability/data/2017_ACT/act_cohort_student_level_EK.csv", na = "")
+write_csv(output, "K:/ORP_accountability/data/2017_ACT/act_cohort_student_level_EK.csv", na = "")
 
 # Collapse to district and school 
 ## District
@@ -871,6 +871,6 @@ if(sch == T) {
     base = replace(base, is.na(base), NA)
     
     ### Output file
-    #write_csv(base, "K:/ORP_accountability/data/2017_ACT/act_base_EK.csv", na = "")
+    write_csv(base, "K:/ORP_accountability/data/2017_ACT/act_base_EK.csv", na = "")
 }
 
