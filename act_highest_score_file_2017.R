@@ -9,12 +9,13 @@ library(stringr)
 
 # Macros
 date = str_c(day(today()), month(today(), label = T), year(today()))
-dat = T
+dat = F
 sta = F
 sys = F
-sch = T
+sch = F
 app = F
 che = F
+pub = F
 
 # Read in data
 if(dat == T) {
@@ -1361,4 +1362,77 @@ if(che == T) {
                    abs(avg_reading - reading_avg) > 0.1 | 
                    abs(avg_science - science_avg) > 0.1 |
                    abs(avg_composite - act_composite_avg) > 0.1)
+}
+
+# Public Release
+if(pub == T) {
+    ## State
+    state_release = read_dta("K:/ORP_accountability/data/2017_ACT/ACT_state2018.dta") %>% 
+        ### Merge on district names
+        ### Change variable names
+        transmute(District = 0, `District Name` = "State of Tennessee", 
+                  Subgroup = ifelse(subgroup == "HPI", "Hawaiian or Pacific Islander", subgroup), `Valid Tests` = valid_tests, 
+                  `Participation Rate` = participation_rate, `Average English Score` = english_avg, 
+                  `Average Math Score` = math_avg, `Average Reading Score` = reading_avg, 
+                  `Average Science Score` = science_avg, `Average Composite Score` = act_composite_avg, 
+                  `Percent Scoring 21 or Higher` = pct_21_orhigher, `Percent Scoring Below 19` = pct_below19) %>% 
+        ### Suppress
+        mutate_each(funs(ifelse(. > 99 | . < 1, NA_character_, as.character(.))), `Participation Rate`, starts_with("Average"), starts_with("Percent")) %>% 
+        mutate_each(funs(ifelse(`Valid Tests` < 10, "*", .)), `Participation Rate`, starts_with("Average"), starts_with("Percent")) 
+    
+        ### Output
+        state_release = replace(state_release, is.na(state_release), NA)
+        write_csv(state_release, "K:/ORP_accountability/data/2017_ACT/act_district_release.csv", na = "")
+    
+    ## District 
+    district_release = read_dta("K:/ORP_accountability/data/2017_ACT/ACT_district2018.dta") %>% 
+        ### Merge on district names
+        left_join(read_dta("C:/Users/CA19130/Documents/Data/Crosswalks/system_system_name_crosswalk.dta"), 
+                  by = "system") %>% 
+        ### Change variable names
+        transmute(District = system, `District Name` = system_name, Subgroup = subgroup, `Valid Tests` = valid_tests, 
+                  `Participation Rate` = participation_rate, `Average English Score` = english_avg, 
+                  `Average Math Score` = math_avg, `Average Reading Score` = reading_avg, 
+                  `Average Science Score` = science_avg, `Average Composite Score` = act_composite_avg, 
+                  `Percent Scoring 21 or Higher` = pct_21_orhigher, `Percent Scoring Below 19` = pct_below19) %>% 
+        ### Suppress
+        mutate_each(funs(ifelse(. > 99 | . < 1, NA_character_, as.character(.))), `Participation Rate`, starts_with("Average"), starts_with("Percent")) %>% 
+        mutate_each(funs(ifelse(`Valid Tests` < 10, "*", .)), `Participation Rate`, starts_with("Average"), starts_with("Percent")) %>% 
+        ### Keep only accountability subgroups
+        filter(Subgroup %in% c("All Students", "Black/Hispanic/Native American",
+                               "Economically Disadvantaged", "English Learners with T1/T2",
+                               "Students with Disabilities"))
+    
+        ### Output
+        district_release = replace(district_release, is.na(district_release), NA)
+        write_csv(district_release, "K:/ORP_accountability/data/2017_ACT/act_district_release.csv", na = "")
+    
+    ## School
+    school_release = read_dta("K:/ORP_accountability/data/2017_ACT/ACT_school2018.dta") %>% 
+        ### Merge on district and school names
+        left_join(read_dta("C:/Users/CA19130/Documents/Data/Crosswalks/2016_school_crosswalk.dta"), 
+                  by = c("system", "school")) %>% 
+        mutate(school_name = ifelse(system == 970 & school == 25, "Woodland Hills Youth Development Center", school_name),
+               school_name = ifelse(system == 970 & school == 45, "Wilder Youth Development Center", school_name),
+               school_name = ifelse(system == 970 & school == 65, "Mountain View Youth Development Center", school_name),
+               school_name = ifelse(system == 970 & school == 140, "DCS Affiliated Schools", school_name),
+               school_name = ifelse(system == 985 & school == 8140, "Hillcrest High School", school_name)) %>% 
+        ### Change variable names
+        transmute(District = system, `District Name` = system_name, School = school, `School Name` = school_name,
+                  Subgroup = subgroup, `Valid Tests` = valid_tests, 
+                  `Participation Rate` = participation_rate, `Average English Score` = english_avg, 
+                  `Average Math Score` = math_avg, `Average Reading Score` = reading_avg, 
+                  `Average Science Score` = science_avg, `Average Composite Score` = act_composite_avg, 
+                  `Percent Scoring 21 or Higher` = pct_21_orhigher, `Percent Scoring Below 19` = pct_below19) %>% 
+        ### Suppress
+        mutate_each(funs(ifelse(. > 99 | . < 1, NA_character_, as.character(.))), `Participation Rate`, starts_with("Average"), starts_with("Percent")) %>% 
+        mutate_each(funs(ifelse(`Valid Tests` < 10, "*", .)), `Participation Rate`, starts_with("Average"), starts_with("Percent")) %>% 
+        ### Keep only accountability subgroups
+        filter(Subgroup %in% c("All Students", "Black/Hispanic/Native American",
+                               "Economically Disadvantaged", "English Learners with T1/T2",
+                               "Students with Disabilities"))
+
+        ### Output
+        school_release = replace(school_release, is.na(school_release), NA)
+        write_csv(school_release, "K:/ORP_accountability/data/2017_ACT/act_school_release.csv", na = "")
 }
