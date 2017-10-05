@@ -1,6 +1,6 @@
 # ACT Highest Score File
 # Evan Kramer
-# 9/29/2017
+# 10/5/2017
 
 library(tidyverse)
 library(lubridate)
@@ -11,8 +11,9 @@ library(stringr)
 date = str_c(day(today()), month(today(), label = T), year(today()))
 dat = T
 sta = F
-sys = T
-sch = F 
+sys = F
+sch = T
+app = F
 che = F
 
 # Read in data
@@ -61,7 +62,8 @@ if(dat == T) {
                n_cr_math = ifelse(is.na(composite), NA, as.numeric(math >= 22)), 
                n_cr_reading = ifelse(is.na(composite), NA, as.numeric(reading >= 22)),
                n_cr_science = ifelse(is.na(composite), NA, as.numeric(science >= 23)),
-               n_cr_all = ifelse(is.na(composite), NA, as.numeric(n_cr_english == 1 & n_cr_math == 1 & n_cr_reading == 1 & n_cr_science == 1))) 
+               n_cr_all = ifelse(is.na(composite), NA, as.numeric(n_cr_english == 1 & n_cr_math == 1 & n_cr_reading == 1 & n_cr_science == 1))) %>% 
+        mutate_each(funs(ifelse(is.na(composite), NA, .)), english, math, reading, science, file, starts_with("n_cr"))
     
     student_level = replace(student_level, is.na(student_level), NA)
     
@@ -103,9 +105,10 @@ if(sta == T) {
                pct_female_below_19 = round(100 * n_female_below_19 / valid_tests_female, 1),
                pct_male_below_19 = round(100 * n_male_below_19 / valid_tests_male, 1)) %>% 
         mutate_each(funs(round(100 * . / valid_tests, 1)), starts_with("pct_cr"), pct_21_or_higher, pct_below_19) %>% 
-        bind_cols(student_level %>% 
+        full_join(student_level %>% 
                       filter(!is.na(composite)) %>% 
-                      summarize_each(funs(round(mean(., na.rm = T), 1)), english, math, reading, science, composite))
+                      summarize_each(funs(round(mean(., na.rm = T), 1)), english, math, reading, science, composite) %>% 
+                      mutate(subgroup = "All Students"), by = "subgroup")
 
     ### BHN
     bhn = student_level %>% 
@@ -135,9 +138,10 @@ if(sta == T) {
                pct_female_below_19 = round(100 * n_female_below_19 / valid_tests_female, 1),
                pct_male_below_19 = round(100 * n_male_below_19 / valid_tests_male, 1)) %>% 
         mutate_each(funs(round(100 * . / valid_tests, 1)), starts_with("pct_cr"), pct_21_or_higher, pct_below_19) %>% 
-        bind_cols(student_level %>% 
+        full_join(student_level %>% 
                       filter(!is.na(composite) & race_ethnicity %in% c("B", "H", "I")) %>% 
-                      summarize_each(funs(round(mean(., na.rm = T), 1)), english, math, reading, science, composite)) 
+                      summarize_each(funs(round(mean(., na.rm = T), 1)), english, math, reading, science, composite) %>% 
+                      mutate(subgroup = "Black/Hispanic/Native American"), by = "subgroup") 
     
     ### ED
     ed = student_level %>% 
@@ -167,9 +171,10 @@ if(sta == T) {
                pct_female_below_19 = round(100 * n_female_below_19 / valid_tests_female, 1),
                pct_male_below_19 = round(100 * n_male_below_19 / valid_tests_male, 1)) %>% 
         mutate_each(funs(round(100 * . / valid_tests, 1)), starts_with("pct_cr"), pct_21_or_higher, pct_below_19) %>% 
-        bind_cols(student_level %>% 
+        full_join(student_level %>% 
                       filter(!is.na(composite) & econ_dis == "Y") %>% 
-                      summarize_each(funs(round(mean(., na.rm = T), 1)), english, math, reading, science, composite))
+                      summarize_each(funs(round(mean(., na.rm = T), 1)), english, math, reading, science, composite) %>% 
+                      mutate(subgroup = "Economically Disadvantaged"), by = "subgroup")
     
     ### Non-ED
     non_ed = student_level %>% 
@@ -199,9 +204,10 @@ if(sta == T) {
                pct_female_below_19 = round(100 * n_female_below_19 / valid_tests_female, 1),
                pct_male_below_19 = round(100 * n_male_below_19 / valid_tests_male, 1)) %>% 
         mutate_each(funs(round(100 * . / valid_tests, 1)), starts_with("pct_cr"), pct_21_or_higher, pct_below_19) %>% 
-        bind_cols(student_level %>% 
+        full_join(student_level %>% 
                       filter(!is.na(composite) & econ_dis == "N") %>% 
-                      summarize_each(funs(round(mean(., na.rm = T), 1)), english, math, reading, science, composite)) 
+                      summarize_each(funs(round(mean(., na.rm = T), 1)), english, math, reading, science, composite) %>% 
+                      mutate(subgroup = "Non-Economically Disadvantaged"), by = "subgroup") 
     
     ### EL
     el = student_level %>% 
@@ -231,9 +237,10 @@ if(sta == T) {
                pct_female_below_19 = round(100 * n_female_below_19 / valid_tests_female, 1),
                pct_male_below_19 = round(100 * n_male_below_19 / valid_tests_male, 1)) %>% 
         mutate_each(funs(round(100 * . / valid_tests, 1)), starts_with("pct_cr"), pct_21_or_higher, pct_below_19) %>% 
-        bind_cols(student_level %>% 
+        full_join(student_level %>% 
                       filter(!is.na(composite) & el == "Y") %>% 
-                      summarize_each(funs(round(mean(., na.rm = T), 1)), english, math, reading, science, composite))
+                      summarize_each(funs(round(mean(., na.rm = T), 1)), english, math, reading, science, composite) %>% 
+                      mutate(subgroup = "English Learners"), by = "subgroup")
     
     ### Non-EL
     non_el = student_level %>% 
@@ -263,9 +270,10 @@ if(sta == T) {
                pct_female_below_19 = round(100 * n_female_below_19 / valid_tests_female, 1),
                pct_male_below_19 = round(100 * n_male_below_19 / valid_tests_male, 1)) %>% 
         mutate_each(funs(round(100 * . / valid_tests, 1)), starts_with("pct_cr"), pct_21_or_higher, pct_below_19) %>% 
-        bind_cols(student_level %>% 
+        full_join(student_level %>% 
                       filter(!is.na(composite) & el == "N") %>% 
-                      summarize_each(funs(round(mean(., na.rm = T), 1)), english, math, reading, science, composite)) 
+                      summarize_each(funs(round(mean(., na.rm = T), 1)), english, math, reading, science, composite) %>% 
+                      mutate(subgroup = "Non-English Learners"), by = "subgroup") 
     
     ### SWD
     swd = student_level %>% 
@@ -295,9 +303,10 @@ if(sta == T) {
                pct_female_below_19 = round(100 * n_female_below_19 / valid_tests_female, 1),
                pct_male_below_19 = round(100 * n_male_below_19 / valid_tests_male, 1)) %>% 
         mutate_each(funs(round(100 * . / valid_tests, 1)), starts_with("pct_cr"), pct_21_or_higher, pct_below_19) %>% 
-        bind_cols(student_level %>% 
+        full_join(student_level %>% 
                       filter(!is.na(composite) & swd == "Y") %>% 
-                      summarize_each(funs(round(mean(., na.rm = T), 1)), english, math, reading, science, composite))
+                      summarize_each(funs(round(mean(., na.rm = T), 1)), english, math, reading, science, composite) %>% 
+                      mutate(subgroup = "Students with Disabilities"), by = "subgroup")
     
     ### Non-SWD
     non_swd = student_level %>% 
@@ -327,9 +336,10 @@ if(sta == T) {
                pct_female_below_19 = round(100 * n_female_below_19 / valid_tests_female, 1),
                pct_male_below_19 = round(100 * n_male_below_19 / valid_tests_male, 1)) %>% 
         mutate_each(funs(round(100 * . / valid_tests, 1)), starts_with("pct_cr"), pct_21_or_higher, pct_below_19) %>% 
-        bind_cols(student_level %>% 
+        full_join(student_level %>% 
                       filter(!is.na(composite) & swd == "N") %>% 
-                      summarize_each(funs(round(mean(., na.rm = T), 1)), english, math, reading, science, composite)) 
+                      summarize_each(funs(round(mean(., na.rm = T), 1)), english, math, reading, science, composite) %>% 
+                      mutate(subgroup = "Non-Students with Disabilities"), by = "subgroup") 
     
     ### Super 
     super = student_level %>% 
@@ -359,9 +369,10 @@ if(sta == T) {
                pct_female_below_19 = round(100 * n_female_below_19 / valid_tests_female, 1),
                pct_male_below_19 = round(100 * n_male_below_19 / valid_tests_male, 1)) %>% 
         mutate_each(funs(round(100 * . / valid_tests, 1)), starts_with("pct_cr"), pct_21_or_higher, pct_below_19) %>% 
-        bind_cols(student_level %>% 
+        full_join(student_level %>% 
                       filter(!is.na(composite) & (race_ethnicity %in% c("B", "H", "I") | econ_dis == "Y" | el == "Y" | swd == "Y")) %>% 
-                      summarize_each(funs(round(mean(., na.rm = T), 1)), english, math, reading, science, composite)) 
+                      summarize_each(funs(round(mean(., na.rm = T), 1)), english, math, reading, science, composite) %>% 
+                      mutate(subgroup = "Super Subgroup"), by = "subgroup") 
     
     ### Individual racial/ethnic groups
     race_eth_list = unique(student_level$race_ethnicity[!is.na(student_level$race_ethnicity)])
@@ -395,9 +406,10 @@ if(sta == T) {
                    pct_female_below_19 = round(100 * n_female_below_19 / valid_tests_female, 1),
                    pct_male_below_19 = round(100 * n_male_below_19 / valid_tests_male, 1)) %>% 
             mutate_each(funs(round(100 * . / valid_tests, 1)), starts_with("pct_cr"), pct_21_or_higher, pct_below_19) %>% 
-            bind_cols(student_level %>% 
+            full_join(student_level %>% 
                           filter(!is.na(composite) & race_ethnicity == race_eth_list[r]) %>% 
-                          summarize_each(funs(round(mean(., na.rm = T), 1)), english, math, reading, science, composite))
+                          summarize_each(funs(round(mean(., na.rm = T), 1)), english, math, reading, science, composite) %>% 
+                          mutate(subgroup = race_eth_list[r]), by = "subgroup")
         
         ind_race_eth = bind_rows(ind_race_eth, temp)
     }
@@ -451,10 +463,11 @@ if(sys == T) {
                pct_female_below_19 = round(100 * n_female_below_19 / valid_tests_female, 1),
                pct_male_below_19 = round(100 * n_male_below_19 / valid_tests_male, 1)) %>% 
         mutate_each(funs(round(100 * . / valid_tests, 1)), starts_with("pct_cr"), pct_21_or_higher, pct_below_19) %>% 
-        bind_cols(student_level %>% 
+        full_join(student_level %>% 
                       filter(!is.na(composite)) %>% 
                       group_by(system) %>% 
-                      summarize_each(funs(round(mean(., na.rm = T), 1)), english, math, reading, science, composite)) %>% 
+                      summarize_each(funs(round(mean(., na.rm = T), 1)), english, math, reading, science, composite) %>% 
+                      mutate(subgroup = "All Students"), by = c("system", "subgroup")) %>% 
         ungroup()
     
     ### BHN
@@ -486,10 +499,11 @@ if(sys == T) {
                pct_female_below_19 = round(100 * n_female_below_19 / valid_tests_female, 1),
                pct_male_below_19 = round(100 * n_male_below_19 / valid_tests_male, 1)) %>% 
         mutate_each(funs(round(100 * . / valid_tests, 1)), starts_with("pct_cr"), pct_21_or_higher, pct_below_19) %>% 
-        bind_cols(student_level %>% 
+        full_join(student_level %>% 
                       filter(!is.na(composite) & race_ethnicity %in% c("B", "H", "I")) %>% 
                       group_by(system) %>% 
-                      summarize_each(funs(round(mean(., na.rm = T), 1)), english, math, reading, science, composite)) %>% 
+                      summarize_each(funs(round(mean(., na.rm = T), 1)), english, math, reading, science, composite) %>% 
+                      mutate(subgroup = "Black/Hispanic/Native American"), by = c("system", "subgroup")) %>% 
         ungroup()
     
     ### ED
@@ -521,10 +535,11 @@ if(sys == T) {
                pct_female_below_19 = round(100 * n_female_below_19 / valid_tests_female, 1),
                pct_male_below_19 = round(100 * n_male_below_19 / valid_tests_male, 1)) %>% 
         mutate_each(funs(round(100 * . / valid_tests, 1)), starts_with("pct_cr"), pct_21_or_higher, pct_below_19) %>% 
-        bind_cols(student_level %>% 
+        full_join(student_level %>% 
                       filter(!is.na(composite) & econ_dis == "Y") %>% 
                       group_by(system) %>% 
-                      summarize_each(funs(round(mean(., na.rm = T), 1)), english, math, reading, science, composite)) %>% 
+                      summarize_each(funs(round(mean(., na.rm = T), 1)), english, math, reading, science, composite) %>% 
+                      mutate(subgroup = "Economically Disadvantaged"), by = c("system", "subgroup")) %>% 
         ungroup()
     
     ### Non-ED
@@ -556,10 +571,11 @@ if(sys == T) {
                pct_female_below_19 = round(100 * n_female_below_19 / valid_tests_female, 1),
                pct_male_below_19 = round(100 * n_male_below_19 / valid_tests_male, 1)) %>% 
         mutate_each(funs(round(100 * . / valid_tests, 1)), starts_with("pct_cr"), pct_21_or_higher, pct_below_19) %>% 
-        bind_cols(student_level %>% 
+        full_join(student_level %>% 
                       filter(!is.na(composite) & econ_dis == "N") %>% 
                       group_by(system) %>% 
-                      summarize_each(funs(round(mean(., na.rm = T), 1)), english, math, reading, science, composite)) %>%
+                      summarize_each(funs(round(mean(., na.rm = T), 1)), english, math, reading, science, composite) %>% 
+                      mutate(subgroup = "Non-Economically Disadvantaged"), by = c("system", "subgroup")) %>%
         ungroup()
     
     ### EL
@@ -595,7 +611,8 @@ if(sys == T) {
                       filter(!is.na(composite) & el == "Y") %>% 
                       group_by(system) %>% 
                       summarize_each(funs(round(mean(., na.rm = T), 1)), english, math, reading, science, composite) %>% 
-                      mutate(subgroup = "English Learners"), by = c("system", "subgroup"))
+                      mutate(subgroup = "English Learners"), by = c("system", "subgroup")) %>% 
+        ungroup()
     
     ### Non-EL
     non_el = student_level %>% 
@@ -626,10 +643,11 @@ if(sys == T) {
                pct_female_below_19 = round(100 * n_female_below_19 / valid_tests_female, 1),
                pct_male_below_19 = round(100 * n_male_below_19 / valid_tests_male, 1)) %>% 
         mutate_each(funs(round(100 * . / valid_tests, 1)), starts_with("pct_cr"), pct_21_or_higher, pct_below_19) %>% 
-        bind_cols(student_level %>% 
+        full_join(student_level %>% 
                       filter(!is.na(composite) & el == "N") %>% 
                       group_by(system) %>% 
-                      summarize_each(funs(round(mean(., na.rm = T), 1)), english, math, reading, science, composite)) %>% 
+                      summarize_each(funs(round(mean(., na.rm = T), 1)), english, math, reading, science, composite) %>% 
+                      mutate(subgroup = "Non-English Learners"), by = c("system", "subgroup")) %>% 
         ungroup()
     
     ### SWD
@@ -661,10 +679,11 @@ if(sys == T) {
                pct_female_below_19 = round(100 * n_female_below_19 / valid_tests_female, 1),
                pct_male_below_19 = round(100 * n_male_below_19 / valid_tests_male, 1)) %>% 
         mutate_each(funs(round(100 * . / valid_tests, 1)), starts_with("pct_cr"), pct_21_or_higher, pct_below_19) %>% 
-        bind_cols(student_level %>% 
+        full_join(student_level %>% 
                       filter(!is.na(composite) & swd == "Y") %>% 
                       group_by(system) %>% 
-                      summarize_each(funs(round(mean(., na.rm = T), 1)), english, math, reading, science, composite)) %>% 
+                      summarize_each(funs(round(mean(., na.rm = T), 1)), english, math, reading, science, composite) %>% 
+                      mutate(subgroup = "Students with Disabilities"), by = c("system", "subgroup")) %>% 
         ungroup()
     
     ### Non-SWD
@@ -696,10 +715,11 @@ if(sys == T) {
                pct_female_below_19 = round(100 * n_female_below_19 / valid_tests_female, 1),
                pct_male_below_19 = round(100 * n_male_below_19 / valid_tests_male, 1)) %>% 
         mutate_each(funs(round(100 * . / valid_tests, 1)), starts_with("pct_cr"), pct_21_or_higher, pct_below_19) %>% 
-        bind_cols(student_level %>% 
+        full_join(student_level %>% 
                       filter(!is.na(composite) & swd == "N") %>% 
                       group_by(system) %>% 
-                      summarize_each(funs(round(mean(., na.rm = T), 1)), english, math, reading, science, composite)) %>% 
+                      summarize_each(funs(round(mean(., na.rm = T), 1)), english, math, reading, science, composite) %>% 
+                      mutate(subgroup = "Non-Students with Disabilities"), by = c("system", "subgroup")) %>% 
         ungroup()
     
     ### Super 
@@ -731,10 +751,11 @@ if(sys == T) {
                pct_female_below_19 = round(100 * n_female_below_19 / valid_tests_female, 1),
                pct_male_below_19 = round(100 * n_male_below_19 / valid_tests_male, 1)) %>% 
         mutate_each(funs(round(100 * . / valid_tests, 1)), starts_with("pct_cr"), pct_21_or_higher, pct_below_19) %>% 
-        bind_cols(student_level %>% 
+        full_join(student_level %>% 
                       filter(!is.na(composite) & (race_ethnicity %in% c("B", "H", "I") | econ_dis == "Y" | el == "Y" | swd == "Y")) %>% 
                       group_by(system) %>% 
-                      summarize_each(funs(round(mean(., na.rm = T), 1)), english, math, reading, science, composite)) %>% 
+                      summarize_each(funs(round(mean(., na.rm = T), 1)), english, math, reading, science, composite) %>% 
+                      mutate(subgroup = "Super Subgroup"), by = c("system", "subgroup")) %>% 
         ungroup()
     
     ### Individual racial/ethnic groups
@@ -802,12 +823,14 @@ if(sys == T) {
 ## School
 if(sch == T) {
     ### All
-    all = student_level %>% 
+    all = student_level %>%
         group_by(system, school) %>% 
         summarize(subgroup = "All Students",
                   enrolled = n(),
                   tested = sum(!is.na(composite)),
                   valid_tests = sum(!is.na(composite)),
+                  valid_tests_male = sum(gender == "M" & !is.na(composite)),
+                  valid_tests_female = sum(gender == "F" & !is.na(composite)),
                   n_cr_english = sum(n_cr_english, na.rm = T),
                   n_cr_math = sum(n_cr_math, na.rm = T),
                   n_cr_reading = sum(n_cr_reading, na.rm = T),
@@ -819,29 +842,20 @@ if(sch == T) {
                   n_male_21_or_higher = sum(gender == "M" & composite >= 21, na.rm = T),
                   n_female_below_19 = sum(gender == "F" & composite < 19, na.rm = T),
                   n_male_below_19 = sum(gender == "M" & composite < 19, na.rm = T)) %>% 
-        ungroup() %>% 
-        arrange(system)
-    
-    all2 = all %>% 
-        mutate_each(funs(ifelse(valid_tests < 30, NA, round(100 * . / valid_tests, 1))), starts_with("n_")) %>% 
-        select(system, school, subgroup, starts_with("n_"))
-    names(all2) = str_replace_all(names(all2), "n_", "pct_")
-    
-    all3 = student_level %>% 
-        filter(!is.na(composite)) %>% 
-        group_by(system, school) %>% 
-        summarize(subgroup = "All Students",
-                  avg_english = round(mean(english, na.rm = T), 1),
-                  avg_math = round(mean(math, na.rm = T), 1),
-                  avg_reading = round(mean(reading, na.rm = T), 1),
-                  avg_science = round(mean(science, na.rm = T), 1), 
-                  avg_composite = round(mean(composite, na.rm = T), 1)) %>% 
+        mutate(pct_cr_english = n_cr_english, pct_cr_math = n_cr_math, pct_cr_reading = n_cr_reading,
+               pct_cr_science = n_cr_science, pct_cr_all = n_cr_all, pct_21_or_higher = n_21_or_higher, pct_below_19 = n_below_19,
+               participation_rate = round(100 * tested / enrolled, 0),
+               pct_female_21_or_higher = round(100 * n_female_21_or_higher / valid_tests_female, 1),
+               pct_male_21_or_higher = round(100 * n_male_21_or_higher / valid_tests_male, 1),
+               pct_female_below_19 = round(100 * n_female_below_19 / valid_tests_female, 1),
+               pct_male_below_19 = round(100 * n_male_below_19 / valid_tests_male, 1)) %>% 
+        mutate_each(funs(round(100 * . / valid_tests, 1)), starts_with("pct_cr"), pct_21_or_higher, pct_below_19) %>% 
+        full_join(student_level %>% 
+                      filter(!is.na(composite)) %>% 
+                      group_by(system, school) %>% 
+                      summarize_each(funs(round(mean(., na.rm = T), 1)), english, math, reading, science, composite) %>% 
+                      mutate(subgroup = "All Students"), by = c("system", "school", "subgroup")) %>% 
         ungroup()
-    
-    all = full_join(all, all2, by = c("system", "school", "subgroup")) %>% 
-        full_join(all3, by = c("system", "school", "subgroup")) %>% 
-        mutate(participation_rate = ifelse(enrolled < 30, NA, round(100 * tested / enrolled, 0))) %>% 
-        arrange(system, school)
     
     ### BHN
     bhn = student_level %>% 
@@ -851,6 +865,8 @@ if(sch == T) {
                   enrolled = n(),
                   tested = sum(!is.na(composite)),
                   valid_tests = sum(!is.na(composite)),
+                  valid_tests_male = sum(gender == "M" & !is.na(composite)),
+                  valid_tests_female = sum(gender == "F" & !is.na(composite)),
                   n_cr_english = sum(n_cr_english, na.rm = T),
                   n_cr_math = sum(n_cr_math, na.rm = T),
                   n_cr_reading = sum(n_cr_reading, na.rm = T),
@@ -862,29 +878,20 @@ if(sch == T) {
                   n_male_21_or_higher = sum(gender == "M" & composite >= 21, na.rm = T),
                   n_female_below_19 = sum(gender == "F" & composite < 19, na.rm = T),
                   n_male_below_19 = sum(gender == "M" & composite < 19, na.rm = T)) %>% 
-        ungroup() %>% 
-        arrange(system, school)
-    
-    bhn2 = bhn %>% 
-        mutate_each(funs(ifelse(valid_tests < 30, NA, round(100 * . / valid_tests, 1))), starts_with("n_")) %>% 
-        select(system, school, subgroup, starts_with("n_"))
-    names(bhn2) = str_replace_all(names(bhn2), "n_", "pct_")
-    
-    bhn3 = student_level %>% 
-        filter(!is.na(composite) & race_ethnicity %in% c("B", "H", "I")) %>% 
-        group_by(system, school) %>% 
-        summarize(subgroup = "Black/Hispanic/Native American",
-                  avg_english = round(mean(english, na.rm = T), 1),
-                  avg_math = round(mean(math, na.rm = T), 1),
-                  avg_reading = round(mean(reading, na.rm = T), 1),
-                  avg_science = round(mean(science, na.rm = T), 1), 
-                  avg_composite = round(mean(composite, na.rm = T), 1)) %>% 
+        mutate(pct_cr_english = n_cr_english, pct_cr_math = n_cr_math, pct_cr_reading = n_cr_reading,
+               pct_cr_science = n_cr_science, pct_cr_all = n_cr_all, pct_21_or_higher = n_21_or_higher, pct_below_19 = n_below_19,
+               participation_rate = round(100 * tested / enrolled, 0),
+               pct_female_21_or_higher = round(100 * n_female_21_or_higher / valid_tests_female, 1),
+               pct_male_21_or_higher = round(100 * n_male_21_or_higher / valid_tests_male, 1),
+               pct_female_below_19 = round(100 * n_female_below_19 / valid_tests_female, 1),
+               pct_male_below_19 = round(100 * n_male_below_19 / valid_tests_male, 1)) %>% 
+        mutate_each(funs(round(100 * . / valid_tests, 1)), starts_with("pct_cr"), pct_21_or_higher, pct_below_19) %>% 
+        full_join(student_level %>% 
+                      filter(!is.na(composite) & race_ethnicity %in% c("B", "H", "I")) %>% 
+                      group_by(system, school) %>% 
+                      summarize_each(funs(round(mean(., na.rm = T), 1)), english, math, reading, science, composite) %>% 
+                      mutate(subgroup = "Black/Hispanic/Native American"), by = c("system", "school", "subgroup")) %>% 
         ungroup()
-    
-    bhn = full_join(bhn, bhn2, by = c("system", "school", "subgroup")) %>% 
-        full_join(bhn3, by = c("system", "school", "subgroup")) %>% 
-        mutate(participation_rate = ifelse(enrolled < 30, NA, round(100 * tested / enrolled, 0))) %>% 
-        arrange(system, school)
     
     ### ED
     ed = student_level %>% 
@@ -894,6 +901,8 @@ if(sch == T) {
                   enrolled = n(),
                   tested = sum(!is.na(composite)),
                   valid_tests = sum(!is.na(composite)),
+                  valid_tests_male = sum(gender == "M" & !is.na(composite)),
+                  valid_tests_female = sum(gender == "F" & !is.na(composite)),
                   n_cr_english = sum(n_cr_english, na.rm = T),
                   n_cr_math = sum(n_cr_math, na.rm = T),
                   n_cr_reading = sum(n_cr_reading, na.rm = T),
@@ -905,29 +914,20 @@ if(sch == T) {
                   n_male_21_or_higher = sum(gender == "M" & composite >= 21, na.rm = T),
                   n_female_below_19 = sum(gender == "F" & composite < 19, na.rm = T),
                   n_male_below_19 = sum(gender == "M" & composite < 19, na.rm = T)) %>% 
-        ungroup() %>% 
-        arrange(system, school)
-    
-    ed2 = ed %>% 
-        mutate_each(funs(ifelse(valid_tests < 30, NA, round(100 * . / valid_tests, 1))), starts_with("n_")) %>% 
-        select(system, school, subgroup, starts_with("n_"))
-    names(ed2) = str_replace_all(names(ed2), "n_", "pct_")
-    
-    ed3 = student_level %>% 
-        filter(!is.na(composite) & econ_dis == "Y") %>% 
-        group_by(system, school) %>% 
-        summarize(subgroup = "Economically Disadvantaged",
-                  avg_english = round(mean(english, na.rm = T), 1),
-                  avg_math = round(mean(math, na.rm = T), 1),
-                  avg_reading = round(mean(reading, na.rm = T), 1),
-                  avg_science = round(mean(science, na.rm = T), 1), 
-                  avg_composite = round(mean(composite, na.rm = T), 1)) %>% 
+        mutate(pct_cr_english = n_cr_english, pct_cr_math = n_cr_math, pct_cr_reading = n_cr_reading,
+               pct_cr_science = n_cr_science, pct_cr_all = n_cr_all, pct_21_or_higher = n_21_or_higher, pct_below_19 = n_below_19,
+               participation_rate = round(100 * tested / enrolled, 0),
+               pct_female_21_or_higher = round(100 * n_female_21_or_higher / valid_tests_female, 1),
+               pct_male_21_or_higher = round(100 * n_male_21_or_higher / valid_tests_male, 1),
+               pct_female_below_19 = round(100 * n_female_below_19 / valid_tests_female, 1),
+               pct_male_below_19 = round(100 * n_male_below_19 / valid_tests_male, 1)) %>% 
+        mutate_each(funs(round(100 * . / valid_tests, 1)), starts_with("pct_cr"), pct_21_or_higher, pct_below_19) %>% 
+        full_join(student_level %>% 
+                      filter(!is.na(composite) & econ_dis == "Y") %>% 
+                      group_by(system, school) %>% 
+                      summarize_each(funs(round(mean(., na.rm = T), 1)), english, math, reading, science, composite) %>% 
+                      mutate(subgroup = "Economically Disadvantaged"), by = c("system", "school", "subgroup")) %>% 
         ungroup()
-    
-    ed = full_join(ed, ed2, by = c("system", "school", "subgroup")) %>% 
-        full_join(ed3, by = c("system", "school", "subgroup")) %>% 
-        mutate(participation_rate = ifelse(enrolled < 30, NA, round(100 * tested / enrolled, 0))) %>% 
-        arrange(system, school)
     
     ### Non-ED
     non_ed = student_level %>% 
@@ -937,6 +937,8 @@ if(sch == T) {
                   enrolled = n(),
                   tested = sum(!is.na(composite)),
                   valid_tests = sum(!is.na(composite)),
+                  valid_tests_male = sum(gender == "M" & !is.na(composite)),
+                  valid_tests_female = sum(gender == "F" & !is.na(composite)),
                   n_cr_english = sum(n_cr_english, na.rm = T),
                   n_cr_math = sum(n_cr_math, na.rm = T),
                   n_cr_reading = sum(n_cr_reading, na.rm = T),
@@ -948,29 +950,20 @@ if(sch == T) {
                   n_male_21_or_higher = sum(gender == "M" & composite >= 21, na.rm = T),
                   n_female_below_19 = sum(gender == "F" & composite < 19, na.rm = T),
                   n_male_below_19 = sum(gender == "M" & composite < 19, na.rm = T)) %>% 
-        ungroup() %>% 
-        arrange(system, school)
-    
-    non_ed2 = non_ed %>% 
-        mutate_each(funs(ifelse(valid_tests < 30, NA, round(100 * . / valid_tests, 1))), starts_with("n_")) %>% 
-        select(system, school, subgroup, starts_with("n_"))
-    names(non_ed2) = str_replace_all(names(non_ed2), "n_", "pct_")
-    
-    non_ed3 = student_level %>% 
-        filter(!is.na(composite) & econ_dis == "N") %>% 
-        group_by(system, school) %>% 
-        summarize(subgroup = "Non-Economically Disadvantaged",
-                  avg_english = round(mean(english, na.rm = T), 1),
-                  avg_math = round(mean(math, na.rm = T), 1),
-                  avg_reading = round(mean(reading, na.rm = T), 1),
-                  avg_science = round(mean(science, na.rm = T), 1), 
-                  avg_composite = round(mean(composite, na.rm = T), 1)) %>% 
+        mutate(pct_cr_english = n_cr_english, pct_cr_math = n_cr_math, pct_cr_reading = n_cr_reading,
+               pct_cr_science = n_cr_science, pct_cr_all = n_cr_all, pct_21_or_higher = n_21_or_higher, pct_below_19 = n_below_19,
+               participation_rate = round(100 * tested / enrolled, 0),
+               pct_female_21_or_higher = round(100 * n_female_21_or_higher / valid_tests_female, 1),
+               pct_male_21_or_higher = round(100 * n_male_21_or_higher / valid_tests_male, 1),
+               pct_female_below_19 = round(100 * n_female_below_19 / valid_tests_female, 1),
+               pct_male_below_19 = round(100 * n_male_below_19 / valid_tests_male, 1)) %>% 
+        mutate_each(funs(round(100 * . / valid_tests, 1)), starts_with("pct_cr"), pct_21_or_higher, pct_below_19) %>% 
+        full_join(student_level %>% 
+                      filter(!is.na(composite) & econ_dis == "N") %>% 
+                      group_by(system, school) %>% 
+                      summarize_each(funs(round(mean(., na.rm = T), 1)), english, math, reading, science, composite) %>% 
+                      mutate(subgroup = "Non-Economically Disadvantaged"), by = c("system", "school", "subgroup")) %>%
         ungroup()
-    
-    non_ed = full_join(non_ed, non_ed2, by = c("system", "school", "subgroup")) %>% 
-        full_join(non_ed3, by = c("system", "school", "subgroup")) %>% 
-        mutate(participation_rate = ifelse(enrolled < 30, NA, round(100 * tested / enrolled, 0))) %>% 
-        arrange(system, school)
     
     ### EL
     el = student_level %>% 
@@ -980,6 +973,8 @@ if(sch == T) {
                   enrolled = n(),
                   tested = sum(!is.na(composite)),
                   valid_tests = sum(!is.na(composite)),
+                  valid_tests_male = sum(gender == "M" & !is.na(composite)),
+                  valid_tests_female = sum(gender == "F" & !is.na(composite)),
                   n_cr_english = sum(n_cr_english, na.rm = T),
                   n_cr_math = sum(n_cr_math, na.rm = T),
                   n_cr_reading = sum(n_cr_reading, na.rm = T),
@@ -991,29 +986,19 @@ if(sch == T) {
                   n_male_21_or_higher = sum(gender == "M" & composite >= 21, na.rm = T),
                   n_female_below_19 = sum(gender == "F" & composite < 19, na.rm = T),
                   n_male_below_19 = sum(gender == "M" & composite < 19, na.rm = T)) %>% 
-        ungroup() %>% 
-        arrange(system, school)
-    
-    el2 = el %>% 
-        mutate_each(funs(ifelse(valid_tests < 30, NA, round(100 * . / valid_tests, 1))), starts_with("n_")) %>% 
-        select(system, school, subgroup, starts_with("n_"))
-    names(el2) = str_replace_all(names(el2), "n_", "pct_")
-    
-    el3 = student_level %>% 
-        filter(!is.na(composite) & el == "Y") %>% 
-        group_by(system, school) %>% 
-        summarize(subgroup = "English Learners",
-                  avg_english = round(mean(english, na.rm = T), 1),
-                  avg_math = round(mean(math, na.rm = T), 1),
-                  avg_reading = round(mean(reading, na.rm = T), 1),
-                  avg_science = round(mean(science, na.rm = T), 1), 
-                  avg_composite = round(mean(composite, na.rm = T), 1)) %>% 
-        ungroup()
-                  
-    el = full_join(el, el2, by = c("system", "school", "subgroup")) %>% 
-        full_join(el3, by = c("system", "school", "subgroup")) %>% 
-        mutate(participation_rate = ifelse(enrolled < 30, NA, round(100 * tested / enrolled, 0))) %>% 
-        arrange(system, school)
+        mutate(pct_cr_english = n_cr_english, pct_cr_math = n_cr_math, pct_cr_reading = n_cr_reading,
+               pct_cr_science = n_cr_science, pct_cr_all = n_cr_all, pct_21_or_higher = n_21_or_higher, pct_below_19 = n_below_19,
+               participation_rate = round(100 * tested / enrolled, 0),
+               pct_female_21_or_higher = round(100 * n_female_21_or_higher / valid_tests_female, 1),
+               pct_male_21_or_higher = round(100 * n_male_21_or_higher / valid_tests_male, 1),
+               pct_female_below_19 = round(100 * n_female_below_19 / valid_tests_female, 1),
+               pct_male_below_19 = round(100 * n_male_below_19 / valid_tests_male, 1)) %>% 
+        mutate_each(funs(round(100 * . / valid_tests, 1)), starts_with("pct_cr"), pct_21_or_higher, pct_below_19) %>% 
+        full_join(student_level %>% 
+                      filter(!is.na(composite) & el == "Y") %>% 
+                      group_by(system, school) %>% 
+                      summarize_each(funs(round(mean(., na.rm = T), 1)), english, math, reading, science, composite) %>% 
+                      mutate(subgroup = "English Learners"), by = c("system", "school", "subgroup"))
     
     ### Non-EL
     non_el = student_level %>% 
@@ -1023,6 +1008,8 @@ if(sch == T) {
                   enrolled = n(),
                   tested = sum(!is.na(composite)),
                   valid_tests = sum(!is.na(composite)),
+                  valid_tests_male = sum(gender == "M" & !is.na(composite)),
+                  valid_tests_female = sum(gender == "F" & !is.na(composite)),
                   n_cr_english = sum(n_cr_english, na.rm = T),
                   n_cr_math = sum(n_cr_math, na.rm = T),
                   n_cr_reading = sum(n_cr_reading, na.rm = T),
@@ -1034,29 +1021,20 @@ if(sch == T) {
                   n_male_21_or_higher = sum(gender == "M" & composite >= 21, na.rm = T),
                   n_female_below_19 = sum(gender == "F" & composite < 19, na.rm = T),
                   n_male_below_19 = sum(gender == "M" & composite < 19, na.rm = T)) %>% 
-        ungroup() %>% 
-        arrange(system, school)
-    
-    non_el2 = non_el %>% 
-        mutate_each(funs(ifelse(valid_tests < 30, NA, round(100 * . / valid_tests, 1))), starts_with("n_")) %>% 
-        select(system, school, subgroup, starts_with("n_"))
-    names(non_el2) = str_replace_all(names(non_el2), "n_", "pct_")
-    
-    non_el3 = student_level %>% 
-        filter(!is.na(composite) & el == "N") %>% 
-        group_by(system, school) %>% 
-        summarize(subgroup = "Non-English Learners",
-                  avg_english = round(mean(english, na.rm = T), 1),
-                  avg_math = round(mean(math, na.rm = T), 1),
-                  avg_reading = round(mean(reading, na.rm = T), 1),
-                  avg_science = round(mean(science, na.rm = T), 1), 
-                  avg_composite = round(mean(composite, na.rm = T), 1)) %>% 
+        mutate(pct_cr_english = n_cr_english, pct_cr_math = n_cr_math, pct_cr_reading = n_cr_reading,
+               pct_cr_science = n_cr_science, pct_cr_all = n_cr_all, pct_21_or_higher = n_21_or_higher, pct_below_19 = n_below_19,
+               participation_rate = round(100 * tested / enrolled, 0),
+               pct_female_21_or_higher = round(100 * n_female_21_or_higher / valid_tests_female, 1),
+               pct_male_21_or_higher = round(100 * n_male_21_or_higher / valid_tests_male, 1),
+               pct_female_below_19 = round(100 * n_female_below_19 / valid_tests_female, 1),
+               pct_male_below_19 = round(100 * n_male_below_19 / valid_tests_male, 1)) %>% 
+        mutate_each(funs(round(100 * . / valid_tests, 1)), starts_with("pct_cr"), pct_21_or_higher, pct_below_19) %>% 
+        full_join(student_level %>% 
+                      filter(!is.na(composite) & el == "N") %>% 
+                      group_by(system, school) %>% 
+                      summarize_each(funs(round(mean(., na.rm = T), 1)), english, math, reading, science, composite) %>% 
+                      mutate(subgroup = "Non-English Learners"), by = c("system", "school", "subgroup")) %>% 
         ungroup()
-                  
-    non_el = full_join(non_el, non_el2, by = c("system", "school", "subgroup")) %>% 
-        full_join(non_el3, by = c("system", "school", "subgroup")) %>% 
-        mutate(participation_rate = ifelse(enrolled < 30, NA, round(100 * tested / enrolled, 0))) %>% 
-        arrange(system, school)
     
     ### SWD
     swd = student_level %>% 
@@ -1066,6 +1044,8 @@ if(sch == T) {
                   enrolled = n(),
                   tested = sum(!is.na(composite)),
                   valid_tests = sum(!is.na(composite)),
+                  valid_tests_male = sum(gender == "M" & !is.na(composite)),
+                  valid_tests_female = sum(gender == "F" & !is.na(composite)),
                   n_cr_english = sum(n_cr_english, na.rm = T),
                   n_cr_math = sum(n_cr_math, na.rm = T),
                   n_cr_reading = sum(n_cr_reading, na.rm = T),
@@ -1077,29 +1057,20 @@ if(sch == T) {
                   n_male_21_or_higher = sum(gender == "M" & composite >= 21, na.rm = T),
                   n_female_below_19 = sum(gender == "F" & composite < 19, na.rm = T),
                   n_male_below_19 = sum(gender == "M" & composite < 19, na.rm = T)) %>% 
-        ungroup() %>% 
-        arrange(system, school)
-    
-    swd2 = swd %>% 
-        mutate_each(funs(ifelse(valid_tests < 30, NA, round(100 * . / valid_tests, 1))), starts_with("n_")) %>% 
-        select(system, school, subgroup, starts_with("n_"))
-    names(swd2) = str_replace_all(names(swd2), "n_", "pct_")
-    
-    swd3 = student_level %>% 
-        filter(!is.na(composite) & swd == "Y") %>% 
-        group_by(system, school) %>% 
-        summarize(subgroup = "Students with Disabilities",
-                  avg_english = round(mean(english, na.rm = T), 1),
-                  avg_math = round(mean(math, na.rm = T), 1),
-                  avg_reading = round(mean(reading, na.rm = T), 1),
-                  avg_science = round(mean(science, na.rm = T), 1), 
-                  avg_composite = round(mean(composite, na.rm = T), 1)) %>% 
+        mutate(pct_cr_english = n_cr_english, pct_cr_math = n_cr_math, pct_cr_reading = n_cr_reading,
+               pct_cr_science = n_cr_science, pct_cr_all = n_cr_all, pct_21_or_higher = n_21_or_higher, pct_below_19 = n_below_19,
+               participation_rate = round(100 * tested / enrolled, 0),
+               pct_female_21_or_higher = round(100 * n_female_21_or_higher / valid_tests_female, 1),
+               pct_male_21_or_higher = round(100 * n_male_21_or_higher / valid_tests_male, 1),
+               pct_female_below_19 = round(100 * n_female_below_19 / valid_tests_female, 1),
+               pct_male_below_19 = round(100 * n_male_below_19 / valid_tests_male, 1)) %>% 
+        mutate_each(funs(round(100 * . / valid_tests, 1)), starts_with("pct_cr"), pct_21_or_higher, pct_below_19) %>% 
+        full_join(student_level %>% 
+                      filter(!is.na(composite) & swd == "Y") %>% 
+                      group_by(system, school) %>% 
+                      summarize_each(funs(round(mean(., na.rm = T), 1)), english, math, reading, science, composite) %>% 
+                      mutate(subgroup = "Students with Disabilities"), by = c("system", "school", "subgroup")) %>% 
         ungroup()
-                  
-    swd = full_join(swd, swd2, by = c("system", "school", "subgroup")) %>% 
-        full_join(swd3, by = c("system", "school", "subgroup")) %>% 
-        mutate(participation_rate = ifelse(enrolled < 30, NA, round(100 * tested / enrolled, 0))) %>% 
-        arrange(system, school)
     
     ### Non-SWD
     non_swd = student_level %>% 
@@ -1109,6 +1080,8 @@ if(sch == T) {
                   enrolled = n(),
                   tested = sum(!is.na(composite)),
                   valid_tests = sum(!is.na(composite)),
+                  valid_tests_male = sum(gender == "M" & !is.na(composite)),
+                  valid_tests_female = sum(gender == "F" & !is.na(composite)),
                   n_cr_english = sum(n_cr_english, na.rm = T),
                   n_cr_math = sum(n_cr_math, na.rm = T),
                   n_cr_reading = sum(n_cr_reading, na.rm = T),
@@ -1120,29 +1093,20 @@ if(sch == T) {
                   n_male_21_or_higher = sum(gender == "M" & composite >= 21, na.rm = T),
                   n_female_below_19 = sum(gender == "F" & composite < 19, na.rm = T),
                   n_male_below_19 = sum(gender == "M" & composite < 19, na.rm = T)) %>% 
-        ungroup() %>% 
-        arrange(system, school)
-    
-    non_swd2 = non_swd %>% 
-        mutate_each(funs(ifelse(valid_tests < 30, NA, round(100 * . / valid_tests, 1))), starts_with("n_")) %>% 
-        select(system, school, subgroup, starts_with("n_"))
-    names(non_swd2) = str_replace_all(names(non_swd2), "n_", "pct_")
-    
-    non_swd3 = student_level %>% 
-        filter(!is.na(composite) & swd == "N") %>% 
-        group_by(system, school) %>% 
-        summarize(subgroup = "Non-Students with Disabilities",
-                  avg_english = round(mean(english, na.rm = T), 1),
-                  avg_math = round(mean(math, na.rm = T), 1),
-                  avg_reading = round(mean(reading, na.rm = T), 1),
-                  avg_science = round(mean(science, na.rm = T), 1), 
-                  avg_composite = round(mean(composite, na.rm = T), 1)) %>% 
+        mutate(pct_cr_english = n_cr_english, pct_cr_math = n_cr_math, pct_cr_reading = n_cr_reading,
+               pct_cr_science = n_cr_science, pct_cr_all = n_cr_all, pct_21_or_higher = n_21_or_higher, pct_below_19 = n_below_19,
+               participation_rate = round(100 * tested / enrolled, 0),
+               pct_female_21_or_higher = round(100 * n_female_21_or_higher / valid_tests_female, 1),
+               pct_male_21_or_higher = round(100 * n_male_21_or_higher / valid_tests_male, 1),
+               pct_female_below_19 = round(100 * n_female_below_19 / valid_tests_female, 1),
+               pct_male_below_19 = round(100 * n_male_below_19 / valid_tests_male, 1)) %>% 
+        mutate_each(funs(round(100 * . / valid_tests, 1)), starts_with("pct_cr"), pct_21_or_higher, pct_below_19) %>% 
+        full_join(student_level %>% 
+                      filter(!is.na(composite) & swd == "N") %>% 
+                      group_by(system, school) %>% 
+                      summarize_each(funs(round(mean(., na.rm = T), 1)), english, math, reading, science, composite) %>% 
+                      mutate(subgroup = "Non-Students with Disabilities"), by = c("system", "school", "subgroup")) %>% 
         ungroup()
-    
-    non_swd = full_join(non_swd, non_swd2, by = c("system", "school", "subgroup")) %>% 
-        full_join(non_swd3, by = c("system", "school", "subgroup")) %>% 
-        mutate(participation_rate = ifelse(enrolled < 30, NA, round(100 * tested / enrolled, 0))) %>% 
-        arrange(system, school)
     
     ### Super 
     super = student_level %>% 
@@ -1152,6 +1116,8 @@ if(sch == T) {
                   enrolled = n(),
                   tested = sum(!is.na(composite)),
                   valid_tests = sum(!is.na(composite)),
+                  valid_tests_male = sum(gender == "M" & !is.na(composite)),
+                  valid_tests_female = sum(gender == "F" & !is.na(composite)),
                   n_cr_english = sum(n_cr_english, na.rm = T),
                   n_cr_math = sum(n_cr_math, na.rm = T),
                   n_cr_reading = sum(n_cr_reading, na.rm = T),
@@ -1163,29 +1129,20 @@ if(sch == T) {
                   n_male_21_or_higher = sum(gender == "M" & composite >= 21, na.rm = T),
                   n_female_below_19 = sum(gender == "F" & composite < 19, na.rm = T),
                   n_male_below_19 = sum(gender == "M" & composite < 19, na.rm = T)) %>% 
-        ungroup() %>% 
-        arrange(system, school)
-    
-    super2 = super %>% 
-        mutate_each(funs(ifelse(valid_tests < 30, NA, round(100 * . / valid_tests, 1))), starts_with("n_")) %>% 
-        select(system, school, subgroup, starts_with("n_"))
-    names(super2) = str_replace_all(names(super2), "n_", "pct_")
-    
-    super3 = student_level %>% 
-        filter(!is.na(composite) & (race_ethnicity %in% c("B", "H", "I") | econ_dis == "Y" | el == "Y" | swd == "Y")) %>% 
-        group_by(system, school) %>% 
-        summarize(subgroup = "Super Subgroup",
-                  avg_english = round(mean(english, na.rm = T), 1),
-                  avg_math = round(mean(math, na.rm = T), 1),
-                  avg_reading = round(mean(reading, na.rm = T), 1),
-                  avg_science = round(mean(science, na.rm = T), 1), 
-                  avg_composite = round(mean(composite, na.rm = T), 1)) %>% 
-        ungroup() 
-                  
-    super = full_join(super, super2, by = c("system", "school", "subgroup")) %>% 
-        full_join(super3, by = c("system", "school", "subgroup")) %>% 
-        mutate(participation_rate = ifelse(enrolled < 30, NA, round(100 * tested / enrolled, 0))) %>% 
-        arrange(system, school)
+        mutate(pct_cr_english = n_cr_english, pct_cr_math = n_cr_math, pct_cr_reading = n_cr_reading,
+               pct_cr_science = n_cr_science, pct_cr_all = n_cr_all, pct_21_or_higher = n_21_or_higher, pct_below_19 = n_below_19,
+               participation_rate = round(100 * tested / enrolled, 0),
+               pct_female_21_or_higher = round(100 * n_female_21_or_higher / valid_tests_female, 1),
+               pct_male_21_or_higher = round(100 * n_male_21_or_higher / valid_tests_male, 1),
+               pct_female_below_19 = round(100 * n_female_below_19 / valid_tests_female, 1),
+               pct_male_below_19 = round(100 * n_male_below_19 / valid_tests_male, 1)) %>% 
+        mutate_each(funs(round(100 * . / valid_tests, 1)), starts_with("pct_cr"), pct_21_or_higher, pct_below_19) %>% 
+        full_join(student_level %>% 
+                      filter(!is.na(composite) & (race_ethnicity %in% c("B", "H", "I") | econ_dis == "Y" | el == "Y" | swd == "Y")) %>% 
+                      group_by(system, school) %>% 
+                      summarize_each(funs(round(mean(., na.rm = T), 1)), english, math, reading, science, composite) %>% 
+                      mutate(subgroup = "Super Subgroup"), by = c("system", "school", "subgroup")) %>% 
+        ungroup()
     
     ### Individual racial/ethnic groups
     race_eth_list = unique(student_level$race_ethnicity[!is.na(student_level$race_ethnicity)])
@@ -1199,6 +1156,8 @@ if(sch == T) {
                       enrolled = n(),
                       tested = sum(!is.na(composite)),
                       valid_tests = sum(!is.na(composite)),
+                      valid_tests_male = sum(gender == "M" & !is.na(composite)),
+                      valid_tests_female = sum(gender == "F" & !is.na(composite)),
                       n_cr_english = sum(n_cr_english, na.rm = T),
                       n_cr_math = sum(n_cr_math, na.rm = T),
                       n_cr_reading = sum(n_cr_reading, na.rm = T),
@@ -1210,29 +1169,20 @@ if(sch == T) {
                       n_male_21_or_higher = sum(gender == "M" & composite >= 21, na.rm = T),
                       n_female_below_19 = sum(gender == "F" & composite < 19, na.rm = T),
                       n_male_below_19 = sum(gender == "M" & composite < 19, na.rm = T)) %>% 
-            ungroup() %>% 
-            arrange(system, school)
-        
-        temp2 = temp %>% 
-            mutate_each(funs(ifelse(valid_tests < 30, NA, round(100 * . / valid_tests, 1))), starts_with("n_")) %>% 
-            select(system, school, subgroup, starts_with("n_"))
-        names(temp2) = str_replace_all(names(temp2), "n_", "pct_")
-        
-        temp3 = student_level %>% 
-            filter(!is.na(composite) & race_ethnicity == race_eth_list[r]) %>% 
-            group_by(system, school) %>% 
-            summarize(subgroup = race_eth_list[r],
-                      avg_english = round(mean(english, na.rm = T), 1),
-                      avg_math = round(mean(math, na.rm = T), 1),
-                      avg_reading = round(mean(reading, na.rm = T), 1),
-                      avg_science = round(mean(science, na.rm = T), 1), 
-                      avg_composite = round(mean(composite, na.rm = T), 1)) %>% 
+            mutate(pct_cr_english = n_cr_english, pct_cr_math = n_cr_math, pct_cr_reading = n_cr_reading,
+                   pct_cr_science = n_cr_science, pct_cr_all = n_cr_all, pct_21_or_higher = n_21_or_higher, pct_below_19 = n_below_19,
+                   participation_rate = round(100 * tested / enrolled, 0),
+                   pct_female_21_or_higher = round(100 * n_female_21_or_higher / valid_tests_female, 1),
+                   pct_male_21_or_higher = round(100 * n_male_21_or_higher / valid_tests_male, 1),
+                   pct_female_below_19 = round(100 * n_female_below_19 / valid_tests_female, 1),
+                   pct_male_below_19 = round(100 * n_male_below_19 / valid_tests_male, 1)) %>% 
+            mutate_each(funs(round(100 * . / valid_tests, 1)), starts_with("pct_cr"), pct_21_or_higher, pct_below_19) %>% 
+            full_join(student_level %>% 
+                          filter(!is.na(composite) & race_ethnicity == race_eth_list[r]) %>% 
+                          group_by(system, school) %>% 
+                          summarize_each(funs(round(mean(., na.rm = T), 1)), english, math, reading, science, composite) %>% 
+                          mutate(subgroup = race_eth_list[r]), by = c("system", "school", "subgroup")) %>%
             ungroup()
-                      
-        temp = full_join(temp, temp2, by = c("system", "school", "subgroup")) %>% 
-            full_join(temp3, by = c("system", "school", "subgroup")) %>% 
-            mutate(participation_rate = ifelse(enrolled < 30, NA, round(100 * tested / enrolled, 0))) %>% 
-            arrange(system, school)
         
         ind_race_eth = bind_rows(ind_race_eth, temp)
     }
@@ -1245,9 +1195,9 @@ if(sch == T) {
                                     ind_race_eth$subgroup == "P" ~ "Hawaiian or Pacific Islander",
                                     ind_race_eth$subgroup == "W" ~ "White"))
     
-    ### Bind all rows together
-    school_level = bind_rows(all, bhn, ed, el, swd, non_ed, non_el, non_swd, ind_race_eth) %>% 
-        select(system, school, subgroup, starts_with("avg_"), enrolled, tested, participation_rate, valid_tests,
+    school_level = bind_rows(all, bhn, ed, el, swd, non_ed, non_el, non_swd, super, ind_race_eth) %>% 
+        select(system, school, subgroup, avg_english = english, avg_math = math, avg_reading = reading, avg_science = science,
+               avg_composite = composite, enrolled, tested, participation_rate, starts_with("valid_tests"),
                ends_with("cr_english"), ends_with("cr_math"), ends_with("cr_reading"), 
                ends_with("cr_science"), ends_with("cr_all"), n_21_or_higher, pct_21_or_higher,
                n_below_19, pct_below_19, n_female_21_or_higher, pct_female_21_or_higher, 
@@ -1255,7 +1205,10 @@ if(sch == T) {
                n_male_below_19, pct_male_below_19) %>% 
         arrange(system, school, subgroup)
     
-    ### Bind school, district, and state levels together 
+}
+
+### Bind school, district, and state levels together 
+if(app == T) {
     base = bind_rows(school_level, district_level, state_level) %>% 
         mutate_each(funs(ifelse(is.na(.), 0, .)), system, school) %>% 
         arrange(system, school, subgroup) %>% 
@@ -1290,23 +1243,122 @@ if(sch == T) {
 ## Check against Jessica's files
 if(che == T) {
     ## Student level
+    student_level_jw = read_dta("K:/ORP_accountability/data/2017_ACT/2018_ACT_student_level_actcohorthighest.dta")
     
     ## State level
-    
+    check = base %>% filter(system == 0) %>% 
+        mutate(system = as.numeric(system), 
+               subgroup = ifelse(!subgroup %in% c("English Learners", "Hispanic or Latino", 
+                                                  "Hawaiian or Pacific Islander", "Non-English Learners"), subgroup, 
+                                 case_when(base$subgroup[base$system == 0] == "English Learners" ~ "English Language Learners with T1/T2",
+                                           base$subgroup[base$system == 0] ==  "Hispanic or Latino" ~ "Hispanic",
+                                           base$subgroup[base$system == 0] == "Hawaiian or Pacific Islander" ~ "HPI",
+                                           base$subgroup[base$system == 0] == "Non-English Learners" ~ "Non-English Language Learners"))) %>% 
+        full_join(read_dta("K:/ORP_accountability/data/2017_ACT/ACT_state2018.dta"), by = c("system", "school", "subgroup")) %>% 
+        
+        ### Male and female
+        # select(system, school, subgroup, pct_female_21_or_higher, female_pct21orhigher,
+        #        pct_male_21_or_higher, male_pct21orhigher, pct_female_below_19, female_pctbelow19,
+        #        pct_male_below_19, male_pctbelow19)
+        
+        
+        ### Percent 21 or higher and percent below 19
+        # select(system, school, subgroup, n_21_or_higher, n_21_orhigher, n_below_19, n_below19)
+        
+        ### Percent meeting college readiness benchmarks - differ as to whether students should be included ONLY if they have a valid test
+        select(system, school, subgroup, n_cr_english, met_CRB_english, n_cr_math,
+            met_CRB_math, n_cr_reading, met_CRB_reading, n_cr_science, met_CRB_science,
+            n_cr_all, met_All4_CRB)
+        
+        ### Participation rates
+        # select(system, school, subgroup, starts_with("participation_rate"))
+        
+        ### Subscore averages
+        # select(system, school, subgroup, avg_english, english_avg, avg_math, math_avg,
+        # avg_reading, reading_avg, avg_science, science_avg, avg_composite, act_composite_avg)
+        
     ## District level
     check = district_level %>% 
-        mutate(system = as.numeric(system))
-    check = mutate(check, subgroup = case_when(check$subgroup == "Hispanic or Latino" ~ "Hispanic",
-                                        check$subgroup == "Hawaiian or Pacific Islander" ~ "HPI",
-                                        check$subgroup == "English Learners" ~ "English Language Learners with T1/T2",
-                                        check$subgroup == "Non-English Learners" ~ "Non-English Language Learners")) %>% 
-        full_join(read_dta("K:/ORP_accountability/data/2017_ACT/ACT_district2018.dta"), by = c("system", "subgroup")) %>%
-        # filter(abs(avg_english - english_avg) >= 0.1 | abs(avg_math - math_avg) >= 0.1 | 
-        #            abs(avg_reading - reading_avg) >= 0.1 | abs(avg_science - science_avg) >= 0.1 | 
-        #            abs(avg_composite - act_composite_avg) >= 0.1) %>% # seems to be a rounding issue
-        filter(is.na(avg_english) & !is.na(english_avg)) %>% 
-        select(system, subgroup, contains("avg"))
-    
+        mutate_each(funs(as.numeric(.)), system, enrolled, tested, starts_with("n_")) %>% 
+        mutate(subgroup = ifelse(!subgroup %in% c("English Learners", "Hispanic or Latino", 
+                                                  "Hawaiian or Pacific Islander", "Non-English Learners"), subgroup, 
+                                 case_when(district_level$subgroup == "English Learners" ~ "English Language Learners with T1/T2",
+                                           district_level$subgroup ==  "Hispanic or Latino" ~ "Hispanic",
+                                           district_level$subgroup == "Hawaiian or Pacific Islander" ~ "HPI",
+                                           district_level$subgroup == "Non-English Learners" ~ "Non-English Language Learners"))) %>% 
+        ### Male and female
+        # full_join(read_dta("K:/ORP_accountability/data/2017_ACT/ACT_district2018.dta"), by = c("system", "subgroup")) %>% 
+        #     filter(abs(pct_female_21_or_higher - female_pct21orhigher) >= 0.1 | 
+        #                abs(pct_male_21_or_higher - male_pct21orhigher) >= 0.1 | 
+        #                abs(pct_female_below_19 -female_pctbelow19) >= 0.1 | 
+        #                abs(pct_male_below_19 - male_pctbelow19) >= 0.1) %>% 
+        # select(system, subgroup, pct_female_21_or_higher, female_pct21orhigher, 
+        #        pct_male_21_or_higher, male_pct21orhigher, pct_female_below_19, female_pctbelow19, 
+        #        pct_male_below_19, male_pctbelow19)
+
+        ### Percent 21 or higher and percent below 19
+        anti_join(read_dta("K:/ORP_accountability/data/2017_ACT/ACT_district2018.dta"),
+                  by = c("system", "subgroup", "n_21_or_higher" = "n_21_orhigher", "n_below_19" = "n_below19"))
         
+        ### Percent meeting college readiness benchmarks - differ as to whether students should be included ONLY if they have a valid test
+        # anti_join(read_dta("K:/ORP_accountability/data/2017_ACT/ACT_district2018.dta"),
+        #           by = c("system", "subgroup", "n_cr_english" = "met_CRB_english",
+        #                  "n_cr_math" = "met_CRB_math", "n_cr_reading" = "met_CRB_reading",
+        #                  "n_cr_science" = "met_CRB_science", "n_cr_all" = "met_All4_CRB"))
+        
+        ### Participation rates
+        # anti_join(read_dta("K:/ORP_accountability/data/2017_ACT/ACT_district2018.dta"), 
+        #       by = c("system", "subgroup", "enrolled", "tested"))
+        
+        ### Subscore averages
+        # anti_join(read_dta("K:/ORP_accountability/data/2017_ACT/ACT_district2018.dta"), 
+        #           by = c("system", "subgroup", "avg_english" = "english_avg", "avg_math" = "math_avg",
+        #                  "avg_reading" = "reading_avg", "avg_science" = "science_avg", 
+        #                  "avg_composite" = "act_composite_avg"))
+    
+
     ## School
+    check = school_level %>% 
+        mutate_each(funs(as.numeric(.)), system, school, enrolled, tested, starts_with("n_")) %>% 
+        mutate(subgroup = ifelse(subgroup == "English Learners", "English Language Learners with T1/T2", subgroup),
+               subgroup = ifelse(subgroup == "Hispanic or Latino", "Hispanic", subgroup),
+               subgroup = ifelse(subgroup == "Hawaiian or Pacific Islander", "HPI", subgroup),
+               subgroup = ifelse(subgroup == "Non-English Learners", "Non-English Language Learners", subgroup)) %>% 
+        
+        ### Male and female
+        # full_join(read_dta("K:/ORP_accountability/data/2017_ACT/ACT_school2018.dta"), by = c("system", "school", "subgroup")) %>% 
+        # filter(abs(pct_female_21_or_higher - female_pct21orhigher) >= 0.1 | 
+        #            abs(pct_male_21_or_higher - male_pct21orhigher) >= 0.1 | 
+        #            abs(pct_female_below_19 -female_pctbelow19) >= 0.1 | 
+        #            abs(pct_male_below_19 - male_pctbelow19) >= 0.1) %>% 
+        # select(system, school, subgroup, pct_female_21_or_higher, female_pct21orhigher, 
+        #        pct_male_21_or_higher, male_pct21orhigher, pct_female_below_19, female_pctbelow19, 
+        #        pct_male_below_19, male_pctbelow19)
+    
+        ### Percent 21 or higher and percent below 19
+        # anti_join(read_dta("K:/ORP_accountability/data/2017_ACT/ACT_school2018.dta"),
+        #           by = c("system", "school", "subgroup", "n_21_or_higher" = "n_21_orhigher", "n_below_19" = "n_below19")) %>% 
+        #     select(system, school, subgroup, valid_tests, contains("_or"), contains("below"))
+        
+        ### Percent meeting college readiness benchmarks - differ as to whether students should be included ONLY if they have a valid test
+        # anti_join(read_dta("K:/ORP_accountability/data/2017_ACT/ACT_school2018.dta"),
+        #           by = c("system", "school", "subgroup", "n_cr_english" = "met_CRB_english",
+        #                  "n_cr_math" = "met_CRB_math", "n_cr_reading" = "met_CRB_reading",
+        #                  "n_cr_science" = "met_CRB_science", "n_cr_all" = "met_All4_CRB"))
+        
+        ### Participation rates
+        # anti_join(read_dta("K:/ORP_accountability/data/2017_ACT/ACT_school2018.dta"),
+        #       by = c("system", "school", "subgroup", "enrolled", "tested"))
+        
+        ### Subscore averages
+        full_join(read_dta("K:/ORP_accountability/data/2017_ACT/ACT_school2018.dta"),
+                  by = c("system", "school", "subgroup")) %>% 
+        select(system, school, subgroup, avg_english, english_avg, avg_math, math_avg,
+                         avg_reading, reading_avg, avg_science, science_avg,
+                         avg_composite, act_composite_avg) %>% 
+        filter(abs(avg_english - english_avg) > 0.1 | 
+                   abs(avg_math - math_avg) > 0.1 | 
+                   abs(avg_reading - reading_avg) > 0.1 | 
+                   abs(avg_science - science_avg) > 0.1 |
+                   abs(avg_composite - act_composite_avg) > 0.1)
 }
