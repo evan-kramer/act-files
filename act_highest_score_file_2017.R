@@ -1,6 +1,6 @@
 # ACT Highest Score File
 # Evan Kramer
-# 10/5/2017
+# 10/6/2017
 
 library(tidyverse)
 library(lubridate)
@@ -15,7 +15,7 @@ sys = F
 sch = F
 app = F
 che = F
-pub = F
+pub = T
 
 # Read in data
 if(dat == T) {
@@ -1362,6 +1362,67 @@ if(che == T) {
                    abs(avg_reading - reading_avg) > 0.1 | 
                    abs(avg_science - science_avg) > 0.1 |
                    abs(avg_composite - act_composite_avg) > 0.1)
+    
+    # Check district-surfaced discrepancies
+    a = read_dta("K:/ORP_accountability/data/2017_ACT/2018_ACT_student_level_actcohorthighest.dta") %>% 
+        filter(system == 630) %>% 
+        mutate(student_key = as.numeric(student_key)) %>% 
+        left_join(read_csv("C:/Users/CA19130/Downloads/630 CMCSS.csv") %>% 
+                      arrange(USID, desc(Composite), desc(Math), desc(Reading), desc(English), desc(Science)) %>% 
+                      group_by(USID) %>% 
+                      summarize_each(funs(first(.)), English, Math, Reading, Science, Composite), by = c("student_key" = "USID")) %>% 
+        mutate(act_composite_highest = ifelse(!is.na(Composite), Composite, act_composite_highest),
+               act_english_highest = ifelse(!is.na(English), English, act_english_highest),
+               act_math_highest = ifelse(!is.na(Math), Math, act_math_highest),
+               act_reading_highest = ifelse(!is.na(Reading), Reading, act_reading_highest),
+               act_science_highest = ifelse(!is.na(Science), Science, act_science_highest),
+               met_CRB_english = as.numeric(act_english_highest >= 18),
+               met_CRB_math = as.numeric(act_math_highest >= 22),
+               met_CRB_reading = as.numeric(act_reading_highest >= 22),
+               met_CRB_science = as.numeric(act_science_highest >= 23),
+               met_All4_CRB = as.numeric(met_CRB_english == 1 & met_CRB_math == 1 & met_CRB_reading == 1 & met_CRB_science == 1)) %>% 
+        summarize(system = first(system), subject = "ACT", grade = "9th through 12th", subgroup = "All Students",
+                  enrolled = n(),
+                  tested = sum(!is.na(act_composite_highest)),
+                  valid_tests = sum(!is.na(act_composite_highest)),
+                  male_count = sum(gender == "M" & !is.na(act_composite_highest)),
+                  female_count = sum(gender == "F" & !is.na(act_composite_highest)),
+                  met_CRB_english = sum(met_CRB_english, na.rm = T),
+                  met_CRB_math = sum(met_CRB_math, na.rm = T),
+                  met_CRB_reading = sum(met_CRB_reading, na.rm = T),
+                  met_CRB_science = sum(met_CRB_science, na.rm = T),
+                  met_All4_CRB = sum(met_All4_CRB, na.rm = T),
+                  n_21_orhigher = sum(act_composite_highest >= 21, na.rm = T),
+                  n_below19 = sum(act_composite_highest < 19, na.rm = T),
+                  female_n_21_orhigher = sum(gender == "F" & act_composite_highest >= 21, na.rm = T),
+                  male_n_21_orhigher = sum(gender == "M" & act_composite_highest >= 21, na.rm = T),
+                  female_n_below19 = sum(gender == "F" & act_composite_highest < 19, na.rm = T),
+                  male_n_below19 = sum(gender == "M" & act_composite_highest < 19, na.rm = T)) %>% 
+        mutate(pct_met_CRB_english = met_CRB_english, pct_met_CRB_math = met_CRB_math, pct_met_CRB_reading = met_CRB_reading,
+               pct_met_CRB_science = met_CRB_science, pct_met_All4_CRB = met_All4_CRB, pct_21_orhigher = n_21_orhigher, pct_below19 = n_below19,
+               participation_rate = round(100 * tested / enrolled, 0),
+               female_pct21orhigher = round(100 * female_n_21_orhigher / female_count, 1),
+               male_pct21orhigher = round(100 * male_n_21_orhigher / male_count, 1),
+               female_pctbelow19 = round(100 * female_n_below19 / female_count, 1),
+               male_pctbelow19 = round(100 * male_n_below19 / male_count, 1)) %>% 
+        mutate_each(funs(round(100 * . / valid_tests, 1)), starts_with("pct_met"), pct_21_orhigher, pct_below19) %>% 
+        full_join(read_dta("K:/ORP_accountability/data/2017_ACT/2018_ACT_student_level_actcohorthighest.dta") %>% 
+                      filter(system == 630 & !is.na(act_composite_highest)) %>% 
+                      group_by(system) %>% 
+                      summarize_each(funs(round(mean(., na.rm = T), 1)), ends_with("_highest")) %>% 
+                      rename(english_avg = act_english_highest, math_avg = act_math_highest, reading_avg = act_reading_highest,
+                             science_avg = act_science_highest, act_composite_avg = act_composite_highest) %>% 
+                      mutate(subgroup = "All Students"), by = c("system", "subgroup")) %>% 
+        ungroup() %>% 
+        select(system, subject, grade, subgroup, enrolled, tested, participation_rate, valid_tests,
+               english_avg, math_avg, reading_avg, science_avg, act_composite_avg, n_21_orhigher, 
+               pct_21_orhigher, n_below19, pct_below19, met_CRB_english, pct_met_CRB_english, 
+               met_CRB_math, pct_met_CRB_math, met_CRB_reading, pct_met_CRB_reading, met_CRB_science,
+               pct_met_CRB_science, met_All4_CRB, pct_met_All4_CRB, male_pct21orhigher,
+               female_pct21orhigher, male_pctbelow19, female_pctbelow19, male_n_21_orhigher,
+               female_n_21_orhigher, male_count, female_count, male_n_below19, female_n_below19) %>% 
+        bind_rows(read_dta("K:/ORP_accountability/data/2017_ACT/ACT_district2018.dta") %>% 
+                      filter(system == 630 & subgroup == "All Students")) 
 }
 
 # Public Release
@@ -1377,12 +1438,12 @@ if(pub == T) {
                   `Average Science Score` = science_avg, `Average Composite Score` = act_composite_avg, 
                   `Percent Scoring 21 or Higher` = pct_21_orhigher, `Percent Scoring Below 19` = pct_below19) %>% 
         ### Suppress
-        mutate_each(funs(ifelse(. > 99 | . < 1, NA_character_, as.character(.))), `Participation Rate`, starts_with("Average"), starts_with("Percent")) %>% 
+        mutate_each(funs(ifelse(. > 99 | . < 1, "**", as.character(.))), `Participation Rate`, starts_with("Average"), starts_with("Percent")) %>% 
         mutate_each(funs(ifelse(`Valid Tests` < 10, "*", .)), `Participation Rate`, starts_with("Average"), starts_with("Percent")) 
     
         ### Output
         state_release = replace(state_release, is.na(state_release), NA)
-        write_csv(state_release, "K:/ORP_accountability/data/2017_ACT/act_district_release.csv", na = "")
+        write_csv(state_release, "K:/ORP_accountability/data/2017_ACT/act_state_release.csv", na = "")
     
     ## District 
     district_release = read_dta("K:/ORP_accountability/data/2017_ACT/ACT_district2018.dta") %>% 
@@ -1396,11 +1457,11 @@ if(pub == T) {
                   `Average Science Score` = science_avg, `Average Composite Score` = act_composite_avg, 
                   `Percent Scoring 21 or Higher` = pct_21_orhigher, `Percent Scoring Below 19` = pct_below19) %>% 
         ### Suppress
-        mutate_each(funs(ifelse(. > 99 | . < 1, NA_character_, as.character(.))), `Participation Rate`, starts_with("Average"), starts_with("Percent")) %>% 
+        mutate_each(funs(ifelse(. > 99 | . < 1, "**", as.character(.))), `Participation Rate`, starts_with("Average"), starts_with("Percent")) %>% 
         mutate_each(funs(ifelse(`Valid Tests` < 10, "*", .)), `Participation Rate`, starts_with("Average"), starts_with("Percent")) %>% 
         ### Keep only accountability subgroups
         filter(Subgroup %in% c("All Students", "Black/Hispanic/Native American",
-                               "Economically Disadvantaged", "English Learners with T1/T2",
+                               "Economically Disadvantaged", "English Language Learners with T1/T2",
                                "Students with Disabilities"))
     
         ### Output
@@ -1425,11 +1486,11 @@ if(pub == T) {
                   `Average Science Score` = science_avg, `Average Composite Score` = act_composite_avg, 
                   `Percent Scoring 21 or Higher` = pct_21_orhigher, `Percent Scoring Below 19` = pct_below19) %>% 
         ### Suppress
-        mutate_each(funs(ifelse(. > 99 | . < 1, NA_character_, as.character(.))), `Participation Rate`, starts_with("Average"), starts_with("Percent")) %>% 
+        mutate_each(funs(ifelse(. > 99 | . < 1, "**", as.character(.))), `Participation Rate`, starts_with("Average"), starts_with("Percent")) %>% 
         mutate_each(funs(ifelse(`Valid Tests` < 10, "*", .)), `Participation Rate`, starts_with("Average"), starts_with("Percent")) %>% 
         ### Keep only accountability subgroups
         filter(Subgroup %in% c("All Students", "Black/Hispanic/Native American",
-                               "Economically Disadvantaged", "English Learners with T1/T2",
+                               "Economically Disadvantaged", "English Language Learners with T1/T2",
                                "Students with Disabilities"))
 
         ### Output
