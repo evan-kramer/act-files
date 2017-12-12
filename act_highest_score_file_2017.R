@@ -9,13 +9,14 @@ library(stringr)
 
 # Macros
 date = str_c(day(today()), month(today(), label = T), year(today()))
-dat = F
+dat = T
 sta = F
 sys = F
 sch = F
 app = F
 che = F
-pub = T
+pub = F
+app = T
 
 # Read in data
 if(dat == T) {
@@ -64,16 +65,18 @@ if(dat == T) {
                n_cr_reading = ifelse(is.na(composite), NA, as.numeric(reading >= 22)),
                n_cr_science = ifelse(is.na(composite), NA, as.numeric(science >= 23)),
                n_cr_all = ifelse(is.na(composite), NA, as.numeric(n_cr_english == 1 & n_cr_math == 1 & n_cr_reading == 1 & n_cr_science == 1))) %>% 
-        mutate_each(funs(ifelse(is.na(composite), NA, .)), english, math, reading, science, file, starts_with("n_cr"))
+        mutate_at(vars(english, math, reading, science, file, starts_with("n_cr")), funs(ifelse(is.na(composite), NA, .)))
     
     student_level = replace(student_level, is.na(student_level), NA)
+    
+    #write_csv(student_level, "K:/ORP_accountability/data/2017_ACT/act_student_level_with_demographics_EK.csv", na = "")
     
     # Output student level file
     output = student_level %>% 
         select(system, school, state_stud_id = student_key, last_name, first_name, 
                english, math, reading, science, composite, gender, n_cr_english,
                n_cr_math, n_cr_reading, n_cr_science, n_cr_all)
-    write_csv(output, "K:/ORP_accountability/data/2017_ACT/act_cohort_student_level_EK.csv", na = "")
+    #write_csv(output, "K:/ORP_accountability/data/2017_ACT/act_cohort_student_level_EK.csv", na = "")
 }
 
 # Collapse to state, district, and school 
@@ -105,10 +108,10 @@ if(sta == T) {
                pct_male_21_or_higher = round(100 * n_male_21_or_higher / valid_tests_male, 1),
                pct_female_below_19 = round(100 * n_female_below_19 / valid_tests_female, 1),
                pct_male_below_19 = round(100 * n_male_below_19 / valid_tests_male, 1)) %>% 
-        mutate_each(funs(round(100 * . / valid_tests, 1)), starts_with("pct_cr"), pct_21_or_higher, pct_below_19) %>% 
+        mutate_at(vars(starts_with("pct_cr"), pct_21_or_higher, pct_below_19), funs(round(100 * . / valid_tests, 1))) %>% 
         full_join(student_level %>% 
                       filter(!is.na(composite)) %>% 
-                      summarize_each(funs(round(mean(., na.rm = T), 1)), english, math, reading, science, composite) %>% 
+                      summarize_at(vars(english, math, reading, science, composite), funs(round(mean(., na.rm = T), 1))) %>% 
                       mutate(subgroup = "All Students"), by = "subgroup")
 
     ### BHN
@@ -138,10 +141,10 @@ if(sta == T) {
                pct_male_21_or_higher = round(100 * n_male_21_or_higher / valid_tests_male, 1),
                pct_female_below_19 = round(100 * n_female_below_19 / valid_tests_female, 1),
                pct_male_below_19 = round(100 * n_male_below_19 / valid_tests_male, 1)) %>% 
-        mutate_each(funs(round(100 * . / valid_tests, 1)), starts_with("pct_cr"), pct_21_or_higher, pct_below_19) %>% 
+        mutate_at(vars(starts_with("pct_cr"), pct_21_or_higher, pct_below_19), funs(round(100 * . / valid_tests, 1))) %>% 
         full_join(student_level %>% 
                       filter(!is.na(composite) & race_ethnicity %in% c("B", "H", "I")) %>% 
-                      summarize_each(funs(round(mean(., na.rm = T), 1)), english, math, reading, science, composite) %>% 
+                      summarize_at(vars(english, math, reading, science, composite), funs(round(mean(., na.rm = T), 1))) %>% 
                       mutate(subgroup = "Black/Hispanic/Native American"), by = "subgroup") 
     
     ### ED
@@ -1208,7 +1211,7 @@ if(sch == T) {
     
 }
 
-### Bind school, district, and state levels together 
+## Bind school, district, and state levels together 
 if(app == T) {
     base = bind_rows(school_level, district_level, state_level) %>% 
         mutate_each(funs(ifelse(is.na(.), 0, .)), system, school) %>% 
@@ -1241,7 +1244,7 @@ if(app == T) {
     write_csv(base, "K:/ORP_accountability/data/2017_ACT/act_base_EK.csv", na = "")
 }
 
-## Check against Jessica's files
+# Check against Jessica's files
 if(che == T) {
     ## Student level
     student_level_jw = read_dta("K:/ORP_accountability/data/2017_ACT/2018_ACT_student_level_actcohorthighest.dta")
@@ -1455,14 +1458,15 @@ if(pub == T) {
                   `Participation Rate` = participation_rate, `Average English Score` = english_avg, 
                   `Average Math Score` = math_avg, `Average Reading Score` = reading_avg, 
                   `Average Science Score` = science_avg, `Average Composite Score` = act_composite_avg, 
-                  `Percent Scoring 21 or Higher` = pct_21_orhigher, `Percent Scoring Below 19` = pct_below19) %>% 
+                  `Number Scoring 21 or Higher` = n_21_orhigher, `Percent Scoring 21 or Higher` = pct_21_orhigher, 
+                  `Number Scoring Below 19` = n_below19, `Percent Scoring Below 19` = pct_below19) %>% 
         ### Suppress
         mutate_each(funs(ifelse(. > 99 | . < 1, "**", as.character(.))), `Participation Rate`, starts_with("Average"), starts_with("Percent")) %>% 
         mutate_each(funs(ifelse(`Valid Tests` < 10, "*", .)), `Participation Rate`, starts_with("Average"), starts_with("Percent")) %>% 
         ### Keep only accountability subgroups
         filter(Subgroup %in% c("All Students", "Black/Hispanic/Native American",
                                "Economically Disadvantaged", "English Language Learners with T1/T2",
-                               "Students with Disabilities"))
+                               "Students with Disabilities") & District == 190)
     
         ### Output
         district_release = replace(district_release, is.na(district_release), NA)
@@ -1496,4 +1500,9 @@ if(pub == T) {
         ### Output
         school_release = replace(school_release, is.na(school_release), NA)
         write_csv(school_release, "K:/ORP_accountability/data/2017_ACT/act_school_release.csv", na = "")
+}
+
+# Post-Appeals
+if(app == T) {
+    
 }
