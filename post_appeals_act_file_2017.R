@@ -16,7 +16,6 @@ sch = F
 app = F
 che = F
 pub = F
-app = T
 
 # Read in data
 if(dat == T) {
