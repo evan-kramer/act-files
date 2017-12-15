@@ -1,6 +1,6 @@
-# ACT Highest Score File
+# ACT Highest Score File - Post-Appeals
 # Evan Kramer
-# 12/13/2017
+# 12/15/2017
 
 library(tidyverse)
 library(lubridate)
@@ -105,6 +105,10 @@ if(dat == T) {
                                   act_composite_highest, composite),
                composite = ifelse(is.na(act_composite_highest), composite,
                              ifelse(act_composite_highest > composite, act_composite_highest, composite)),
+               english = ifelse(is.na(english) & !is.na(act_english_highest), act_english_highest, english),
+               math = ifelse(is.na(math) & !is.na(act_math_highest), act_math_highest, math),
+               reading = ifelse(is.na(reading) & !is.na(act_reading_highest), act_reading_highest, reading),
+               science = ifelse(is.na(science) & !is.na(act_science_highest), act_science_highest, science),
                enrolled = 1, 
                tested = as.numeric(!is.na(composite) | !is.na(sat_total)),
                valid_tests = tested,
@@ -122,12 +126,12 @@ if(dat == T) {
                n_female_21_or_higher = as.numeric(gender == "F" & n_21_or_higher == 1),
                n_male_21_or_higher = as.numeric(gender == "M" & n_21_or_higher == 1),
                n_female_below_19 = as.numeric(gender == "F" & n_below_19 == 1),
-               n_male_below_19 = as.numeric(gender == "M" & n_below_19 == 1))
+               n_male_below_19 = as.numeric(gender == "M" & n_below_19 == 1)) 
     
     # Output student level file
-    output = student_level %>% 
-        select(system, school, state_stud_id = student_key, last_name, first_name, 
-               english, math, reading, science, composite, gender, n_cr_english,
+    output = post_appeals %>% 
+        select(system, school, state_stud_id = student_key, last_name, first_name, gender,
+               english, math, reading, science, composite, sat_total, n_cr_english,
                n_cr_math, n_cr_reading, n_cr_science, n_cr_all)
     write_csv(output, "K:/ORP_accountability/data/2017_ACT/act_cohort_student_level_EK.csv", na = "")
 }
@@ -312,7 +316,7 @@ if(sta == T) {
                    pct_male_below_19 = round(100 * n_male_below_19 / valid_tests_male, 1)) %>% 
             mutate_at(vars(starts_with("pct_cr"), pct_21_or_higher, pct_below_19), funs(round(100 * . / valid_tests, 1))) %>% 
             full_join(post_appeals %>% 
-                          filter(swd == "Y" | el == "Y" | econ_dis == "Y" | race_ethnicity %in% c("B", "H", "I") & !is.na(composite)) %>% 
+                          filter(race_ethnicity == race_eth_list[r] & !is.na(composite)) %>% 
                           summarize_at(vars(english, math, reading, science, composite), funs(round(mean(., na.rm = T), 1))) %>% 
                           mutate(subgroup = race_eth_list[r]), by = "subgroup")
         
@@ -554,7 +558,7 @@ if(sys == T) {
                    pct_male_below_19 = round(100 * n_male_below_19 / valid_tests_male, 1)) %>% 
             mutate_at(vars(starts_with("pct_cr"), pct_21_or_higher, pct_below_19), funs(round(100 * . / valid_tests, 1))) %>% 
             full_join(post_appeals %>% 
-                          filter(swd == "Y" | el == "Y" | econ_dis == "Y" | race_ethnicity %in% c("B", "H", "I") & !is.na(composite)) %>% 
+                          filter(race_ethnicity == race_eth_list[r] & !is.na(composite)) %>% 
                           group_by(system) %>% 
                           summarize_at(vars(english, math, reading, science, composite), funs(round(mean(., na.rm = T), 1))) %>% 
                           ungroup() %>% 
@@ -798,7 +802,7 @@ if(sch == T) {
                    pct_male_below_19 = round(100 * n_male_below_19 / valid_tests_male, 1)) %>% 
             mutate_at(vars(starts_with("pct_cr"), pct_21_or_higher, pct_below_19), funs(round(100 * . / valid_tests, 1))) %>% 
             full_join(post_appeals %>% 
-                          filter(swd == "Y" | el == "Y" | econ_dis == "Y" | race_ethnicity %in% c("B", "H", "I") & !is.na(composite)) %>% 
+                          filter(race_ethnicity == race_eth_list[r] & !is.na(composite)) %>% 
                           group_by(system, school) %>% 
                           summarize_at(vars(english, math, reading, science, composite), funs(round(mean(., na.rm = T), 1))) %>% 
                           ungroup() %>% 
@@ -1047,8 +1051,7 @@ if(che == T) {
 # Public Release
 if(pub == T) {
     ## State
-    state_release = read_dta("K:/ORP_accountability/data/2017_ACT/ACT_state2018.dta") %>% 
-        ### Merge on district names
+    state_release = read_dta("K:/ORP_accountability/data/2017_ACT/ACT_state2018_appeals.dta") %>% 
         ### Change variable names
         transmute(District = 0, `District Name` = "State of Tennessee", 
                   Subgroup = ifelse(subgroup == "HPI", "Hawaiian or Pacific Islander", subgroup), `Valid Tests` = valid_tests, 
@@ -1057,18 +1060,19 @@ if(pub == T) {
                   `Average Science Score` = science_avg, `Average Composite Score` = act_composite_avg, 
                   `Percent Scoring 21 or Higher` = pct_21_orhigher, `Percent Scoring Below 19` = pct_below19) %>% 
         ### Suppress
-        mutate_at(vars(`Participation Rate`, starts_with("Average"), starts_with("Percent")), funs(ifelse(. > 99 | . < 1, "**", as.character(.)))) %>% 
-        mutate_at(vars(`Participation Rate`, starts_with("Average"), starts_with("Percent")), funs(ifelse(`Valid Tests` < 10, "*", .))) 
+        mutate_at(vars(starts_with("Average"), starts_with("Percent")), funs(ifelse(. > 99 | . < 1, "**", as.character(.)))) %>% 
+        mutate_at(vars(starts_with("Average"), starts_with("Percent")), funs(ifelse(`Valid Tests` < 10, "*", .))) 
     
         ### Output
         state_release = replace(state_release, is.na(state_release), NA)
         write_csv(state_release, "K:/ORP_accountability/data/2017_ACT/act_state_release.csv", na = "")
     
     ## District 
-    district_release = read_dta("K:/ORP_accountability/data/2017_ACT/ACT_district2018.dta") %>% 
+    district_release = read_dta("K:/ORP_accountability/data/2017_ACT/ACT_district2018_appeals.dta") %>% 
+        mutate(system = as.integer(system)) %>% 
         ### Merge on district names
-        left_join(read_dta("C:/Users/CA19130/Documents/Data/Crosswalks/system_system_name_crosswalk.dta"), 
-                  by = "system") %>% 
+        left_join(mutate(read_dta("C:/Users/CA19130/Documents/Data/Crosswalks/system_system_name_crosswalk.dta"), 
+                         system = as.integer(system)), by = "system") %>% 
         ### Change variable names
         transmute(District = system, `District Name` = system_name, Subgroup = subgroup, `Valid Tests` = valid_tests, 
                   `Participation Rate` = participation_rate, `Average English Score` = english_avg, 
@@ -1077,21 +1081,25 @@ if(pub == T) {
                   `Number Scoring 21 or Higher` = n_21_orhigher, `Percent Scoring 21 or Higher` = pct_21_orhigher, 
                   `Number Scoring Below 19` = n_below19, `Percent Scoring Below 19` = pct_below19) %>% 
         ### Suppress
-        mutate_at(vars(`Participation Rate`, starts_with("Average"), starts_with("Percent")), funs(ifelse(. > 99 | . < 1, "**", as.character(.)))) %>% 
-        mutate_at(vars(`Participation Rate`, starts_with("Average"), starts_with("Percent")), funs(ifelse(`Valid Tests` < 10, "*", .))) %>% 
+        mutate_at(vars(starts_with("Average"), starts_with("Percent")), funs(ifelse(. > 99 | . < 1, "**", as.character(.)))) %>% 
+        mutate_at(vars(starts_with("Average"), starts_with("Percent")), funs(ifelse(`Valid Tests` < 10, "*", .))) %>%
+        mutate_at(vars(starts_with("Number")), funs(ifelse(. / `Valid Tests` < .01 | . / `Valid Tests` > .99, "**", .))) %>% 
+        mutate_at(vars(starts_with("Number")), funs(ifelse(`Valid Tests` < 10, "*", .))) %>% 
         ### Keep only accountability subgroups
         filter(Subgroup %in% c("All Students", "Black/Hispanic/Native American",
                                "Economically Disadvantaged", "English Language Learners with T1/T2",
-                               "Students with Disabilities") & District == 190)
+                               "Students with Disabilities"))
     
         ### Output
         district_release = replace(district_release, is.na(district_release), NA)
         write_csv(district_release, "K:/ORP_accountability/data/2017_ACT/act_district_release.csv", na = "")
     
     ## School
-    school_release = read_dta("K:/ORP_accountability/data/2017_ACT/ACT_school2018.dta") %>% 
+    school_release = read_dta("K:/ORP_accountability/data/2017_ACT/ACT_school2018_appeals.dta") %>% 
+        mutate_at(vars(system, school), funs(as.integer(.))) %>% 
         ### Merge on district and school names
-        left_join(read_dta("C:/Users/CA19130/Documents/Data/Crosswalks/2016_school_crosswalk.dta"), 
+        left_join(read_dta("C:/Users/CA19130/Documents/Data/Crosswalks/2016_school_crosswalk.dta") %>% 
+                  mutate_at(vars(system, school), funs(as.integer(.))),
                   by = c("system", "school")) %>% 
         mutate(school_name = ifelse(system == 970 & school == 25, "Woodland Hills Youth Development Center", school_name),
                school_name = ifelse(system == 970 & school == 45, "Wilder Youth Development Center", school_name),
@@ -1106,8 +1114,10 @@ if(pub == T) {
                   `Average Science Score` = science_avg, `Average Composite Score` = act_composite_avg, 
                   `Percent Scoring 21 or Higher` = pct_21_orhigher, `Percent Scoring Below 19` = pct_below19) %>% 
         ### Suppress
-        mutate_at(vars(`Participation Rate`, starts_with("Average"), starts_with("Percent")), funs(ifelse(. > 99 | . < 1, "**", as.character(.)))) %>% 
-        mutate_at(vars(`Participation Rate`, starts_with("Average"), starts_with("Percent")), funs(ifelse(`Valid Tests` < 10, "*", .))) %>% 
+        mutate_at(vars(starts_with("Average"), starts_with("Percent")), funs(ifelse(. > 95 | . < 5, "**", as.character(.)))) %>% 
+        mutate_at(vars(starts_with("Average"), starts_with("Percent")), funs(ifelse(`Valid Tests` < 10, "*", .))) %>% 
+        mutate_at(vars(starts_with("Number")), funs(ifelse(. / `Valid Tests` < .05 | . / `Valid Tests` > .95, "**", .))) %>% 
+        mutate_at(vars(starts_with("Number")), funs(ifelse(`Valid Tests` < 10, "*", .))) %>% 
         ### Keep only accountability subgroups
         filter(Subgroup %in% c("All Students", "Black/Hispanic/Native American",
                                "Economically Disadvantaged", "English Language Learners with T1/T2",
