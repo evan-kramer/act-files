@@ -15,7 +15,7 @@ sys = F
 sch = F
 app = F
 che = F
-pub = F
+pub = T
 
 # Read in data
 if(dat == T) {
@@ -864,188 +864,49 @@ if(app == T) {
     write_csv(base, "K:/ORP_accountability/data/2017_ACT/act_base_EK.csv", na = "")
 }
 
-# Check against Jessica's files
+# Check against Mary's files
 if(che == T) {
     ## Student level
-    student_level_jw = read_dta("K:/ORP_accountability/data/2017_ACT/2018_ACT_student_level_actcohorthighest.dta")
+    student_level_mb = read_dta("K:/ORP_accountability/data/2017_ACT/2018_ACT_student_level_actcohorthighest.dta")
     
     ## State level
-    check = base %>% filter(system == 0) %>% 
-        mutate(system = as.numeric(system), 
-               subgroup = ifelse(!subgroup %in% c("English Learners", "Hispanic or Latino", 
-                                                  "Hawaiian or Pacific Islander", "Non-English Learners"), subgroup, 
-                                 case_when(base$subgroup[base$system == 0] == "English Learners" ~ "English Language Learners with T1/T2",
-                                           base$subgroup[base$system == 0] ==  "Hispanic or Latino" ~ "Hispanic",
-                                           base$subgroup[base$system == 0] == "Hawaiian or Pacific Islander" ~ "HPI",
-                                           base$subgroup[base$system == 0] == "Non-English Learners" ~ "Non-English Language Learners"))) %>% 
-        full_join(read_dta("K:/ORP_accountability/data/2017_ACT/ACT_state2018.dta"), by = c("system", "school", "subgroup")) %>% 
-        
-        ### Male and female
-        # select(system, school, subgroup, pct_female_21_or_higher, female_pct21orhigher,
-        #        pct_male_21_or_higher, male_pct21orhigher, pct_female_below_19, female_pctbelow19,
-        #        pct_male_below_19, male_pctbelow19)
-        
-        
-        ### Percent 21 or higher and percent below 19
-        # select(system, school, subgroup, n_21_or_higher, n_21_orhigher, n_below_19, n_below19)
-        
-        ### Percent meeting college readiness benchmarks - differ as to whether students should be included ONLY if they have a valid test
-        select(system, school, subgroup, n_cr_english, met_CRB_english, n_cr_math,
-            met_CRB_math, n_cr_reading, met_CRB_reading, n_cr_science, met_CRB_science,
-            n_cr_all, met_All4_CRB)
-        
-        ### Participation rates
-        # select(system, school, subgroup, starts_with("participation_rate"))
-        
-        ### Subscore averages
-        # select(system, school, subgroup, avg_english, english_avg, avg_math, math_avg,
-        # avg_reading, reading_avg, avg_science, science_avg, avg_composite, act_composite_avg)
-        
+    
     ## District level
     check = district_level %>% 
-        mutate_at(vars(system, enrolled, tested, starts_with("n_")), funs(as.numeric(.))) %>% 
         mutate(subgroup = ifelse(!subgroup %in% c("English Learners", "Hispanic or Latino", 
                                                   "Hawaiian or Pacific Islander", "Non-English Learners"), subgroup, 
                                  case_when(district_level$subgroup == "English Learners" ~ "English Language Learners with T1/T2",
                                            district_level$subgroup ==  "Hispanic or Latino" ~ "Hispanic",
                                            district_level$subgroup == "Hawaiian or Pacific Islander" ~ "HPI",
                                            district_level$subgroup == "Non-English Learners" ~ "Non-English Language Learners"))) %>% 
-        ### Male and female
-        # full_join(read_dta("K:/ORP_accountability/data/2017_ACT/ACT_district2018.dta"), by = c("system", "subgroup")) %>% 
-        #     filter(abs(pct_female_21_or_higher - female_pct21orhigher) >= 0.1 | 
-        #                abs(pct_male_21_or_higher - male_pct21orhigher) >= 0.1 | 
-        #                abs(pct_female_below_19 -female_pctbelow19) >= 0.1 | 
-        #                abs(pct_male_below_19 - male_pctbelow19) >= 0.1) %>% 
-        # select(system, subgroup, pct_female_21_or_higher, female_pct21orhigher, 
-        #        pct_male_21_or_higher, male_pct21orhigher, pct_female_below_19, female_pctbelow19, 
-        #        pct_male_below_19, male_pctbelow19)
-
-        ### Percent 21 or higher and percent below 19
-        anti_join(read_dta("K:/ORP_accountability/data/2017_ACT/ACT_district2018.dta"),
-                  by = c("system", "subgroup", "n_21_or_higher" = "n_21_orhigher", "n_below_19" = "n_below19"))
-        
-        ### Percent meeting college readiness benchmarks - differ as to whether students should be included ONLY if they have a valid test
-        # anti_join(read_dta("K:/ORP_accountability/data/2017_ACT/ACT_district2018.dta"),
-        #           by = c("system", "subgroup", "n_cr_english" = "met_CRB_english",
-        #                  "n_cr_math" = "met_CRB_math", "n_cr_reading" = "met_CRB_reading",
-        #                  "n_cr_science" = "met_CRB_science", "n_cr_all" = "met_All4_CRB"))
-        
-        ### Participation rates
-        # anti_join(read_dta("K:/ORP_accountability/data/2017_ACT/ACT_district2018.dta"), 
-        #       by = c("system", "subgroup", "enrolled", "tested"))
-        
-        ### Subscore averages
-        # anti_join(read_dta("K:/ORP_accountability/data/2017_ACT/ACT_district2018.dta"), 
-        #           by = c("system", "subgroup", "avg_english" = "english_avg", "avg_math" = "math_avg",
-        #                  "avg_reading" = "reading_avg", "avg_science" = "science_avg", 
-        #                  "avg_composite" = "act_composite_avg"))
+        arrange(system, subgroup) %>% 
+        select(system, subgroup, avg_composite, participation_rate, pct_21_or_higher) %>% 
+        full_join(read_dta("K:/ORP_accountability/data/2017_ACT/ACT_district2018_appeals.dta") %>% 
+                      transmute(system = as.integer(system), subgroup, avg_composite = act_composite_avg,
+                                participation_rate, pct_21_or_higher = pct_21_orhigher),
+                  by = c("system", "subgroup")) %>% 
+        filter(abs(avg_composite.x - avg_composite.y) > 0.1 | 
+                   abs(participation_rate.x - participation_rate.y) > 0.1 | 
+                   abs(pct_21_or_higher.x - pct_21_or_higher.y) > 0.1)
     
-
-    ## School
+    ## School level
     check = school_level %>% 
-        mutate_at(vars(system, school, enrolled, tested, starts_with("n_")), funs(as.numeric(.))) %>% 
-        mutate(subgroup = ifelse(subgroup == "English Learners", "English Language Learners with T1/T2", subgroup),
-               subgroup = ifelse(subgroup == "Hispanic or Latino", "Hispanic", subgroup),
-               subgroup = ifelse(subgroup == "Hawaiian or Pacific Islander", "HPI", subgroup),
-               subgroup = ifelse(subgroup == "Non-English Learners", "Non-English Language Learners", subgroup)) %>% 
-        
-        ### Male and female
-        # full_join(read_dta("K:/ORP_accountability/data/2017_ACT/ACT_school2018.dta"), by = c("system", "school", "subgroup")) %>% 
-        # filter(abs(pct_female_21_or_higher - female_pct21orhigher) >= 0.1 | 
-        #            abs(pct_male_21_or_higher - male_pct21orhigher) >= 0.1 | 
-        #            abs(pct_female_below_19 -female_pctbelow19) >= 0.1 | 
-        #            abs(pct_male_below_19 - male_pctbelow19) >= 0.1) %>% 
-        # select(system, school, subgroup, pct_female_21_or_higher, female_pct21orhigher, 
-        #        pct_male_21_or_higher, male_pct21orhigher, pct_female_below_19, female_pctbelow19, 
-        #        pct_male_below_19, male_pctbelow19)
-    
-        ### Percent 21 or higher and percent below 19
-        # anti_join(read_dta("K:/ORP_accountability/data/2017_ACT/ACT_school2018.dta"),
-        #           by = c("system", "school", "subgroup", "n_21_or_higher" = "n_21_orhigher", "n_below_19" = "n_below19")) %>% 
-        #     select(system, school, subgroup, valid_tests, contains("_or"), contains("below"))
-        
-        ### Percent meeting college readiness benchmarks - differ as to whether students should be included ONLY if they have a valid test
-        # anti_join(read_dta("K:/ORP_accountability/data/2017_ACT/ACT_school2018.dta"),
-        #           by = c("system", "school", "subgroup", "n_cr_english" = "met_CRB_english",
-        #                  "n_cr_math" = "met_CRB_math", "n_cr_reading" = "met_CRB_reading",
-        #                  "n_cr_science" = "met_CRB_science", "n_cr_all" = "met_All4_CRB"))
-        
-        ### Participation rates
-        # anti_join(read_dta("K:/ORP_accountability/data/2017_ACT/ACT_school2018.dta"),
-        #       by = c("system", "school", "subgroup", "enrolled", "tested"))
-        
-        ### Subscore averages
-        full_join(read_dta("K:/ORP_accountability/data/2017_ACT/ACT_school2018.dta"),
+        mutate(subgroup = ifelse(!subgroup %in% c("English Learners", "Hispanic or Latino", 
+                                                  "Hawaiian or Pacific Islander", "Non-English Learners"), subgroup, 
+                                 case_when(school_level$subgroup == "English Learners" ~ "English Language Learners with T1/T2",
+                                           school_level$subgroup ==  "Hispanic or Latino" ~ "Hispanic",
+                                           school_level$subgroup == "Hawaiian or Pacific Islander" ~ "HPI",
+                                           school_level$subgroup == "Non-English Learners" ~ "Non-English Language Learners"))) %>% 
+        arrange(system, school, subgroup) %>% 
+        select(system, school, subgroup, avg_composite, participation_rate, pct_21_or_higher) %>% 
+        full_join(read_dta("K:/ORP_accountability/data/2017_ACT/ACT_school2018_appeals.dta") %>% 
+                      transmute(system = as.integer(system), school = as.integer(school), 
+                                subgroup, avg_composite = act_composite_avg,
+                                participation_rate, pct_21_or_higher = pct_21_orhigher),
                   by = c("system", "school", "subgroup")) %>% 
-        select(system, school, subgroup, avg_english, english_avg, avg_math, math_avg,
-                         avg_reading, reading_avg, avg_science, science_avg,
-                         avg_composite, act_composite_avg) %>% 
-        filter(abs(avg_english - english_avg) > 0.1 | 
-                   abs(avg_math - math_avg) > 0.1 | 
-                   abs(avg_reading - reading_avg) > 0.1 | 
-                   abs(avg_science - science_avg) > 0.1 |
-                   abs(avg_composite - act_composite_avg) > 0.1)
-    
-    # Check district-surfaced discrepancies
-    a = read_dta("K:/ORP_accountability/data/2017_ACT/2018_ACT_student_level_actcohorthighest.dta") %>% 
-        filter(system == 630) %>% 
-        mutate(student_key = as.numeric(student_key)) %>% 
-        left_join(read_csv("C:/Users/CA19130/Downloads/630 CMCSS.csv") %>% 
-                      arrange(USID, desc(Composite), desc(Math), desc(Reading), desc(English), desc(Science)) %>% 
-                      group_by(USID) %>% 
-                      summarize_at(vars(English, Math, Reading, Science, Composite), funs(first(.))), by = c("student_key" = "USID")) %>% 
-        mutate(act_composite_highest = ifelse(!is.na(Composite), Composite, act_composite_highest),
-               act_english_highest = ifelse(!is.na(English), English, act_english_highest),
-               act_math_highest = ifelse(!is.na(Math), Math, act_math_highest),
-               act_reading_highest = ifelse(!is.na(Reading), Reading, act_reading_highest),
-               act_science_highest = ifelse(!is.na(Science), Science, act_science_highest),
-               met_CRB_english = as.numeric(act_english_highest >= 18),
-               met_CRB_math = as.numeric(act_math_highest >= 22),
-               met_CRB_reading = as.numeric(act_reading_highest >= 22),
-               met_CRB_science = as.numeric(act_science_highest >= 23),
-               met_All4_CRB = as.numeric(met_CRB_english == 1 & met_CRB_math == 1 & met_CRB_reading == 1 & met_CRB_science == 1)) %>% 
-        summarize(system = first(system), subject = "ACT", grade = "9th through 12th", subgroup = "All Students",
-                  enrolled = n(),
-                  tested = sum(!is.na(act_composite_highest)),
-                  valid_tests = sum(!is.na(act_composite_highest)),
-                  male_count = sum(gender == "M" & !is.na(act_composite_highest)),
-                  female_count = sum(gender == "F" & !is.na(act_composite_highest)),
-                  met_CRB_english = sum(met_CRB_english, na.rm = T),
-                  met_CRB_math = sum(met_CRB_math, na.rm = T),
-                  met_CRB_reading = sum(met_CRB_reading, na.rm = T),
-                  met_CRB_science = sum(met_CRB_science, na.rm = T),
-                  met_All4_CRB = sum(met_All4_CRB, na.rm = T),
-                  n_21_orhigher = sum(act_composite_highest >= 21, na.rm = T),
-                  n_below19 = sum(act_composite_highest < 19, na.rm = T),
-                  female_n_21_orhigher = sum(gender == "F" & act_composite_highest >= 21, na.rm = T),
-                  male_n_21_orhigher = sum(gender == "M" & act_composite_highest >= 21, na.rm = T),
-                  female_n_below19 = sum(gender == "F" & act_composite_highest < 19, na.rm = T),
-                  male_n_below19 = sum(gender == "M" & act_composite_highest < 19, na.rm = T)) %>% 
-        mutate(pct_met_CRB_english = met_CRB_english, pct_met_CRB_math = met_CRB_math, pct_met_CRB_reading = met_CRB_reading,
-               pct_met_CRB_science = met_CRB_science, pct_met_All4_CRB = met_All4_CRB, pct_21_orhigher = n_21_orhigher, pct_below19 = n_below19,
-               participation_rate = round(100 * tested / enrolled, 0),
-               female_pct21orhigher = round(100 * female_n_21_orhigher / female_count, 1),
-               male_pct21orhigher = round(100 * male_n_21_orhigher / male_count, 1),
-               female_pctbelow19 = round(100 * female_n_below19 / female_count, 1),
-               male_pctbelow19 = round(100 * male_n_below19 / male_count, 1)) %>% 
-        mutate_at(vars(starts_with("pct_met"), pct_21_orhigher, pct_below19), funs(round(100 * . / valid_tests, 1))) %>% 
-        full_join(read_dta("K:/ORP_accountability/data/2017_ACT/2018_ACT_student_level_actcohorthighest.dta") %>% 
-                      filter(system == 630 & !is.na(act_composite_highest)) %>% 
-                      group_by(system) %>% 
-                      summarize_at(vars(ends_with("_highest")), funs(round(mean(., na.rm = T), 1))) %>% 
-                      rename(english_avg = act_english_highest, math_avg = act_math_highest, reading_avg = act_reading_highest,
-                             science_avg = act_science_highest, act_composite_avg = act_composite_highest) %>% 
-                      mutate(subgroup = "All Students"), by = c("system", "subgroup")) %>% 
-        ungroup() %>% 
-        select(system, subject, grade, subgroup, enrolled, tested, participation_rate, valid_tests,
-               english_avg, math_avg, reading_avg, science_avg, act_composite_avg, n_21_orhigher, 
-               pct_21_orhigher, n_below19, pct_below19, met_CRB_english, pct_met_CRB_english, 
-               met_CRB_math, pct_met_CRB_math, met_CRB_reading, pct_met_CRB_reading, met_CRB_science,
-               pct_met_CRB_science, met_All4_CRB, pct_met_All4_CRB, male_pct21orhigher,
-               female_pct21orhigher, male_pctbelow19, female_pctbelow19, male_n_21_orhigher,
-               female_n_21_orhigher, male_count, female_count, male_n_below19, female_n_below19) %>% 
-        bind_rows(read_dta("K:/ORP_accountability/data/2017_ACT/ACT_district2018.dta") %>% 
-                      filter(system == 630 & subgroup == "All Students")) 
+        filter(abs(avg_composite.x - avg_composite.y) > 0.1 | 
+                   abs(participation_rate.x - participation_rate.y) > 0.1 | 
+                   abs(pct_21_or_higher.x - pct_21_or_higher.y) > 0.1)
 }
 
 # Public Release
